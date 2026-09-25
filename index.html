@@ -61,7 +61,7 @@
     text-shadow: 2px 3px 0 rgba(10,42,107,.32);
   }
   .hero .tag { max-width: 740px; margin: 1rem auto 0; color: #3a2c08; font-size: 1.04rem; }
-  main { padding: 0 1.4rem 3rem 4.4rem; max-width: 1480px; margin: 0 auto; }
+  main { padding: 0 1.4rem 3rem 4.4rem; max-width: 1860px; margin: 0 auto; }
   section { margin: 2.6rem 0; }
   h2 {
     font-family: Georgia, serif; color: var(--blue);
@@ -96,14 +96,15 @@
     box-shadow: inset 0 0 0 2px var(--gold), 0 12px 32px rgba(0,0,0,.38);
     overflow: hidden;
   }
+  #theater .theater { min-height: 72vh; }
   .theater-top {
     display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;
     padding: .85rem 1rem .55rem; color: var(--gold-lt); flex-wrap: wrap;
   }
   .theater-top h3 { font-family: Georgia, serif; color: #fff; font-size: 1.2rem; }
   .theater-top .ref { color: var(--gold); font-size: .82rem; letter-spacing: .08em; }
-  .stage-wrap { position: relative; background: #071428; }
-  #stage { display: block; width: 100%; height: auto; cursor: crosshair; touch-action: none; }
+  .stage-wrap { position: relative; background: #071428; min-height: 68vh; }
+  #stage { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; min-height: 640px; cursor: crosshair; touch-action: none; }
   .hud {
     position: absolute; left: 12px; top: 12px; color: #d7e7ff; font-size: 12px;
     font-variant-numeric: tabular-nums; letter-spacing: .04em; pointer-events: none;
@@ -117,9 +118,9 @@
     transition: opacity .2s;
   }
   .callout.on { opacity: 1; }
-  .maneuver-dock { display: grid; grid-template-columns: 280px 1fr; }
+  .maneuver-dock { display: grid; grid-template-columns: 300px 1fr; min-height: 72vh; }
   .maneuver-list {
-    background: #0a1830; color: #d5e2f7; max-height: 820px; overflow: auto;
+    background: #0a1830; color: #d5e2f7; max-height: calc(72vh + 120px); overflow: auto;
     border-right: 1px solid rgba(230,180,34,.25);
   }
   .filters { display: flex; flex-wrap: wrap; gap: .35rem; padding: .7rem; }
@@ -166,6 +167,20 @@
     body::before { width: 26px; }
     header, main, .hero, footer { padding-left: calc(26px + 1rem); }
   }
+  body.capture-mode::before, body.capture-mode header, body.capture-mode .hero,
+  body.capture-mode #mission, body.capture-mode #roster, body.capture-mode #shows,
+  body.capture-mode #facts, body.capture-mode footer, body.capture-mode .filters,
+  body.capture-mode .maneuver-list, body.capture-mode .theater-top,
+  body.capture-mode .controls, body.capture-mode .desc { display: none !important; }
+  body.capture-mode { background: #07101f; }
+  body.capture-mode main { padding: 0; max-width: none; }
+  body.capture-mode #theater { margin: 0; }
+  body.capture-mode #theater h2 { display: none; }
+  body.capture-mode #theater > p { display: none; }
+  body.capture-mode .theater { border-radius: 0; min-height: 100vh; }
+  body.capture-mode .maneuver-dock { grid-template-columns: 1fr; min-height: 100vh; }
+  body.capture-mode .stage-wrap { min-height: 100vh; }
+  body.capture-mode #stage { min-height: 100vh; height: 100vh; aspect-ratio: auto; }
 </style>
 </head>
 <body>
@@ -193,7 +208,7 @@
 </header>
 
 <section class="hero">
-  <div class="vip">VIP</div>
+  <div class="vip">Navy</div>
   <div class="script">Blue Angels</div>
   <p class="tag">U.S. Navy Flight Demonstration Squadron — F/A-18E Super Hornets since the 2021 season. Celebrating <strong>80 years (1946–2026)</strong>. Maneuver paths reconstructed from the 2026 Maneuvers Manual.</p>
 </section>
@@ -207,7 +222,7 @@
 
 <section id="theater">
   <h2>Maneuver Theater</h2>
-  <p style="margin-bottom:.8rem;color:#3a2c08">Jets are now drawn as F/A-18E Super Hornets: caret intakes, oversized LEX, canted twin tails, twin F414 nozzles, and Blue Angels blue/gold. Keys: space play/pause, ← → maneuver, 1–3 cameras.</p>
+  <p style="margin-bottom:.8rem;color:#3a2c08">Paths follow the 2026 Maneuvers Manual: takeoff loops stay on heading, rolls are aileron rolls, Immelmanns reverse heading only after the half-loop. Crowd camera is planted so loops use the sky. Keys: space play/pause, ← → maneuver, 1–3 cameras.</p>
   <div class="theater">
     <div class="theater-top">
       <div>
@@ -223,7 +238,7 @@
       </div>
       <div>
         <div class="stage-wrap">
-          <canvas id="stage" width="1280" height="720" role="img" aria-label="Animated Blue Angels aerobatic box"></canvas>
+          <canvas id="stage" width="1920" height="1080" role="img" aria-label="Animated Blue Angels aerobatic box"></canvas>
           <div class="hud" id="hud"></div>
           <div class="callout" id="callout"></div>
         </div>
@@ -313,9 +328,9 @@
   const mList = document.getElementById("mList");
   const filtersEl = document.getElementById("filters");
 
-  const W = 1280, H = 720;
-  const JET_SIZE = 2.65;
-  const C130_SIZE = 4.6;
+  let W = 1920, H = 1080;
+  const JET_SIZE = 2.7;
+  const C130_SIZE = 4.55;
   const GOLD = "#e6b422";
   const ROLES = [
     ["#1 Lead / Boss", "Pace, altitude, and the break call."],
@@ -341,8 +356,14 @@
   function remap(t, a, b) { return clamp((t - a) / (b - a), 0, 1); }
   function angNorm(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
   function lerpAng(a, b, t) { return a + angNorm(b - a) * t; }
+  function smooth01(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  function smoother01(t) { t = clamp(t, 0, 1); return t * t * t * (t * (t * 6 - 15) + 10); }
+  function expFollow(dt, rate) { return 1 - Math.exp(-Math.max(0, dt) * rate); }
 
   function basis(yaw, pitch, roll) {
+    yaw = isFinite(yaw) ? yaw : 0;
+    pitch = isFinite(pitch) ? pitch : 0;
+    roll = isFinite(roll) ? roll : 0;
     const cy = Math.cos(yaw), sy = Math.sin(yaw);
     const cp = Math.cos(pitch), sp = Math.sin(pitch);
     const cr = Math.cos(roll), sr = Math.sin(roll);
@@ -355,13 +376,16 @@
   }
 
   function place(lead, off, extra) {
-    const b = basis(lead.yaw, lead.pitch, lead.roll);
     extra = extra || {};
+    const yaw = isFinite(lead.yaw) ? lead.yaw : 0;
+    const pitch = isFinite(lead.pitch) ? lead.pitch : 0;
+    const roll = isFinite(lead.roll) ? lead.roll : 0;
+    const b = basis(yaw, pitch, roll);
     return {
-      x: lead.x + b.fwd.x * off[0] + b.up.x * off[1] + b.rgt.x * off[2],
-      y: lead.y + b.fwd.y * off[0] + b.up.y * off[1] + b.rgt.y * off[2],
-      z: lead.z + b.fwd.z * off[0] + b.up.z * off[1] + b.rgt.z * off[2],
-      yaw: lead.yaw, pitch: lead.pitch, roll: lead.roll + (extra.roll || 0),
+      x: (lead.x || 0) + b.fwd.x * off[0] + b.up.x * off[1] + b.rgt.x * off[2],
+      y: (lead.y || 0) + b.fwd.y * off[0] + b.up.y * off[1] + b.rgt.y * off[2],
+      z: (lead.z || 0) + b.fwd.z * off[0] + b.up.z * off[1] + b.rgt.z * off[2],
+      yaw: yaw, pitch: pitch, roll: roll + (extra.roll || 0),
       gear: extra.gear != null ? extra.gear : lead.gear,
       burner: extra.burner != null ? extra.burner : lead.burner,
       smoke: extra.smoke != null ? extra.smoke : (lead.smoke !== false),
@@ -380,11 +404,12 @@
   }
 
   function orient(p, fn, t) {
-    const dt = 0.004;
+    const dt = 0.014;
     const a = fn(clamp(t - dt, 0, 1));
     const b = fn(clamp(t + dt, 0, 1));
-    p.yaw = Math.atan2(b.z - a.z, b.x - a.x);
-    p.pitch = Math.atan2(b.y - a.y, Math.hypot(b.x - a.x, b.z - a.z) + 1e-6);
+    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    p.yaw = Math.atan2(dz, dx);
+    p.pitch = Math.atan2(dy, Math.hypot(dx, dz) + 1e-6);
     return p;
   }
 
@@ -394,24 +419,144 @@
     return p;
   }
 
-  function loopLead(u, R, y0, x0, z0) {
+  // Vertical loop in the show-line plane. dir +1 = flying +X (left→right); -1 = flying -X.
+  // Pitch runs a full 0..2π so the jets go inverted at the top instead of yawing around.
+  function loopLead(u, R, y0, x0, z0, dir) {
+    dir = dir == null ? -1 : dir;
     const a = u * Math.PI * 2;
-    return { x: x0 - R * Math.sin(a), y: y0 + R * (1 - Math.cos(a)), z: z0 || 0, yaw: Math.PI, pitch: a, roll: 0 };
+    return {
+      x: x0 + dir * R * Math.sin(a),
+      y: y0 + R * (1 - Math.cos(a)),
+      z: z0 || 0,
+      yaw: dir > 0 ? 0 : Math.PI,
+      pitch: a,
+      roll: 0
+    };
   }
 
-  function cubanLead(u, R, y0, x0) {
-    if (u < 0.62) {
-      const a = (u / 0.62) * Math.PI * 1.25;
-      return { x: x0 - R * Math.sin(a), y: y0 + R * (1 - Math.cos(a)), z: 0, yaw: Math.PI, pitch: a, roll: 0 };
+  // Half Cuban Eight at constant path speed: 5/8 loop, half-roll on the 45° downline while still flying, pull to level.
+  function cubanLead(u, R, y0, x0, dir) {
+    dir = dir == null ? 1 : dir;
+    const yawIn = dir > 0 ? 0 : Math.PI;
+    const yawOut = dir > 0 ? Math.PI : 0;
+    const aPull = Math.PI * 1.25;
+    const loopLen = aPull * R;
+    const downLen = R * 0.75;
+    const recLen = R * 0.9;
+    const s = u * (loopLen + downLen + recLen);
+    const x1 = x0 + dir * R * Math.sin(aPull);
+    const y1 = y0 + R * (1 - Math.cos(aPull));
+    let x, y, pitch, roll;
+    if (s < loopLen) {
+      const a = s / R;
+      x = x0 + dir * R * Math.sin(a);
+      y = y0 + R * (1 - Math.cos(a));
+      pitch = a;
+      roll = 0;
+    } else if (s < loopLen + downLen) {
+      const d = s - loopLen;
+      x = x1 - dir * d * Math.cos(Math.PI / 4);
+      y = y1 - d * Math.sin(Math.PI / 4);
+      pitch = aPull;
+      roll = (d / downLen) * Math.PI;
+    } else {
+      const v = (s - loopLen - downLen) / recLen;
+      x = x1 - dir * (downLen * Math.cos(Math.PI / 4) + v * recLen * 0.9);
+      y = lerp(y1 - downLen * Math.sin(Math.PI / 4), y0 + 12, v);
+      pitch = aPull;
+      roll = Math.PI;
     }
-    const v = (u - 0.62) / 0.38;
-    const a0 = Math.PI * 1.25;
-    const p0 = { x: x0 - R * Math.sin(a0), y: y0 + R * (1 - Math.cos(a0)) };
+    if (roll >= Math.PI * 0.92) {
+      const v = s < loopLen + downLen ? 0 : (s - loopLen - downLen) / recLen;
+      return { x: x, y: y, z: 0, yaw: yawOut, pitch: lerp(-Math.PI / 4, 0, v), roll: 0 };
+    }
+    return { x: x, y: y, z: 0, yaw: yawIn, pitch: pitch, roll: roll };
+  }
+
+  function takeoffRun(u, fromX, toX) {
+    const rotate = smoother01(remap(u, 0.28, 1));
     return {
-      x: p0.x - v * 90, y: lerp(p0.y, 28, v), z: 0, yaw: Math.PI,
-      pitch: lerpAng(a0, 0, v),
-      roll: v < 0.55 ? v / 0.55 * Math.PI : Math.PI + (v - 0.55) / 0.45 * Math.PI
+      x: lerp(fromX, toX, u),
+      y: lerp(2.2, 16, rotate * rotate),
+      z: 0,
+      yaw: toX >= fromX ? 0 : Math.PI,
+      pitch: rotate * 0.18,
+      roll: 0,
+      burner: 1,
+      gear: 1 - smoother01(remap(u, 0.45, 1)),
+      smoke: true
     };
+  }
+
+  function climbingPass(t, fromX, toX, y0, yPeak, z0) {
+    const x = lerp(fromX, toX, t);
+    const climb = Math.sin(Math.PI * t);
+    const y = y0 + climb * (yPeak - y0);
+    const dx = toX - fromX;
+    const dy = Math.cos(Math.PI * t) * Math.PI * (yPeak - y0);
+    return {
+      x: x, y: y, z: z0 || 0,
+      yaw: dx < 0 ? Math.PI : 0,
+      pitch: Math.atan2(dy, Math.abs(dx) + 1e-6),
+      roll: 0
+    };
+  }
+
+  function immelmannLead(u, R, y0, x0, dir) {
+    dir = dir == null ? -1 : dir;
+    const yawIn = dir > 0 ? 0 : Math.PI;
+    const yawOut = dir > 0 ? Math.PI : 0;
+    const loopLen = Math.PI * R;
+    const exitLen = R * 1.4;
+    const s = u * (loopLen + exitLen);
+    const roll = clamp((s - loopLen * 0.58) / (loopLen * 0.42 + exitLen * 0.5), 0, 1) * Math.PI;
+    let x, y, yaw, pitch;
+    if (s < loopLen) {
+      const a = s / R;
+      x = x0 + dir * R * Math.sin(a);
+      y = y0 + R * (1 - Math.cos(a));
+      yaw = yawIn;
+      pitch = a;
+    } else {
+      x = x0 - dir * (s - loopLen);
+      y = y0 + 2 * R;
+      yaw = yawIn;
+      pitch = Math.PI;
+    }
+    if (roll >= Math.PI * 0.92) return { x: x, y: y, z: 0, yaw: yawOut, pitch: 0, roll: 0 };
+    return { x: x, y: y, z: 0, yaw: yaw, pitch: pitch, roll: roll };
+  }
+
+  function hesitationRoll(t, t0, t1, points, dir) {
+    const u = remap(t, t0, t1);
+    if (t < t0) return 0;
+    if (t > t1) return (dir || 1) * Math.PI * 2;
+    const idx = Math.min(points - 1, Math.floor(u * points));
+    const local = u * points - idx;
+    const hold = local < 0.38 ? 0 : (local - 0.38) / 0.62;
+    return (dir || 1) * (idx + hold) * (Math.PI * 2 / points);
+  }
+
+  function gatedRoll(t, t0, t1, turns, dir) {
+    const u = remap(t, t0, t1);
+    return (dir || 1) * u * Math.PI * 2 * (turns || 1);
+  }
+  function mixPose(a, b, t, extra) {
+    const u = smoother01(t);
+    extra = extra || {};
+    return Object.assign({
+      x: lerp(a.x, b.x, u),
+      y: lerp(a.y, b.y, u),
+      z: lerp(a.z || 0, b.z || 0, u),
+      yaw: lerpAng(a.yaw || 0, b.yaw || 0, u),
+      pitch: lerpAng(a.pitch || 0, b.pitch || 0, u),
+      roll: lerpAng(a.roll || 0, b.roll || 0, u),
+      gear: b.gear != null ? b.gear : a.gear,
+      burner: b.burner != null ? b.burner : a.burner,
+      smoke: b.smoke != null ? b.smoke : a.smoke,
+      kind: b.kind || a.kind,
+      n: b.n != null ? b.n : a.n
+    }, extra);
   }
 
   const M = [];
@@ -419,314 +564,518 @@
 
   add({ id: "diamond-hold", name: "Diamond Formation", ref: "—", tags: ["formation"], min: 200, max: 800, kin: 310, kout: 290, dur: 8,
     desc: "Lead, Right Wing, Left Wing, Slot — the signature four-ship F/A-18E Diamond.",
-    jets: function (t) { return formJets(showLinePass(t, { from: 210, to: -210, y: 36, z: 0 }), "diamond", [1, 2, 3, 4]); } });
+    jets: function (t) { return formJets(showLinePass(t, { from: 175, to: -175, y: 36, z: 0 }), "diamond", [1, 2, 3, 4]); } });
   add({ id: "delta-hold", name: "Delta Formation", ref: "—", tags: ["formation"], min: 200, max: 800, kin: 335, kout: 335, dur: 8,
     desc: "All six Super Hornets. #5 and #6 close the back corners of the Delta.",
-    jets: function (t) { return formJets(showLinePass(t, { from: 220, to: -220, y: 40, z: 0 }), "delta", [1, 2, 3, 4, 5, 6]); } });
+    jets: function (t) { return formJets(showLinePass(t, { from: 180, to: -180, y: 40, z: 0 }), "delta", [1, 2, 3, 4, 5, 6]); } });
   add({ id: "line-abreast", name: "Line Abreast", ref: "2-30 / 3-7", tags: ["formation", "flat"], min: 200, max: 500, kin: 335, kout: 335, dur: 8,
     desc: "#1–#5 abreast on the 500′ show line.",
-    jets: function (t) { return formJets(showLinePass(t, { from: 200, to: -200, y: 28, z: -8 }), "lineabreast", [1, 2, 3, 4, 5]); } });
+    jets: function (t) { return formJets(showLinePass(t, { from: 170, to: -170, y: 28, z: -8 }), "lineabreast", [1, 2, 3, 4, 5]); } });
   add({ id: "echelon", name: "Right Echelon Parade", ref: "2-25", tags: ["formation", "high"], min: 200, max: 800, kin: 310, kout: 290, dur: 10,
     desc: "Non-aerobatic circular pass at about 60° AOB, crossing CP at ≥200′ AGL.",
     jets: function (t) {
-      const a = lerp(0.15, Math.PI * 1.15, t); const R = 150;
-      const lead = { x: R * Math.cos(a), y: 32, z: 40 - R * Math.sin(a) * 0.45, roll: 0.85 };
-      orient(lead, function (u) { const b = lerp(0.15, Math.PI * 1.15, u); return { x: R * Math.cos(b), y: 32, z: 40 - R * Math.sin(b) * 0.45 }; }, t);
+      const a = lerp(0.15, Math.PI * 1.15, t); const R = 128;
+      const lead = { x: R * Math.cos(a), y: 32, z: 32 - R * Math.sin(a) * 0.42, roll: 0.85 };
+      orient(lead, function (u) { const b = lerp(0.15, Math.PI * 1.15, u); return { x: R * Math.cos(b), y: 32, z: 32 - R * Math.sin(b) * 0.42 }; }, t);
       lead.roll = 0.9;
       return formJets(lead, "echelonR", [1, 2, 3, 4]);
     } });
-  add({ id: "burner-go", name: "Diamond Burner Go / Loop on Takeoff", ref: "2-10b", tags: ["high", "takeoff"], min: 0, max: 9400, kin: 0, kout: 380, dur: 14,
-    desc: "Fingertip takeoff, transition to Diamond, then a loop from the show line.",
+  add({ id: "burner-go", name: "Diamond Burner Go / Loop on Takeoff", ref: "2-10b", tags: ["high", "takeoff"], min: 0, max: 9400, kin: 0, kout: 380, dur: 16,
+    desc: "Fingertip takeoff, slide to Diamond on a low show-line transition, then pull straight into a loop. No turn-around — the loop starts from the same heading as the takeoff. Clear is a climbing turn behind the crowd.",
+    jets: function (t) {
+      if (t < 0.18) {
+        const u = remap(t, 0, 0.18);
+        const lead = takeoffRun(u, -110, 6);
+        const blend = smoother01(remap(u, 0.35, 0.75));
+        const a = formJets(lead, "echelonR", [1, 2, 3, 4]);
+        if (blend <= 0) return a;
+        const b = formJets(lead, "diamond", [1, 2, 3, 4]);
+        if (blend >= 1) return b;
+        return a.map(function (ja, i) { return ja && b[i] ? mixPose(ja, b[i], blend) : (b[i] || ja); });
+      }
+      if (t < 0.86) {
+        const u = remap(t, 0.18, 0.86);
+        const lead = loopLead(u, 102, 16, 6, 0, 1);
+        lead.burner = u < 0.42 ? 1 : 0;
+        lead.gear = 0;
+        lead.smoke = true;
+        return formJets(lead, "diamond", [1, 2, 3, 4]);
+      }
+      const u = remap(t, 0.86, 1);
+      const lead = { x: 6 + u * 40, y: 16 + u * 30, z: u * 52, yaw: u * 0.9, pitch: 0.14, roll: u * 0.3, gear: 0, smoke: true };
+      return formJets(lead, "diamond", [1, 2, 3, 4]);
+    } });
+  add({ id: "half-cuban", name: "Diamond Half-Cuban Eight on Takeoff", ref: "2-10a", tags: ["high", "takeoff"], min: 0, max: 9500, kin: 0, kout: 380, dur: 14,
+    desc: "Fingertip to Diamond on a low transition, then a Half-Cuban Eight: 5/8 loop, half-roll on the 45° downline, pull to level. Exit heading is opposite the takeoff.",
     jets: function (t) {
       if (t < 0.22) {
         const u = remap(t, 0, 0.22);
-        const lead = { x: lerp(-40, 80, u), y: lerp(2, 18, u * u), z: 0, yaw: 0, pitch: 0.18, roll: 0, burner: 1, gear: 1 - u };
+        const lead = takeoffRun(u, -100, 4);
         return formJets(lead, u < 0.55 ? "echelonR" : "diamond", [1, 2, 3, 4]);
       }
-      const lead = loopLead(remap(t, 0.22, 1), 92, 18, 80, 0);
-      lead.burner = remap(t, 0.22, 1) < 0.5 ? 1 : 0; lead.gear = 0;
-      return formJets(lead, "diamond", [1, 2, 3, 4]);
-    } });
-  add({ id: "half-cuban", name: "Diamond Half-Cuban Eight on Takeoff", ref: "2-10a", tags: ["high", "takeoff"], min: 0, max: 9500, kin: 0, kout: 380, dur: 12,
-    desc: "Low-transition Diamond into a Half-Cuban Eight.",
-    jets: function (t) {
-      const lead = cubanLead(t, 88, 16, 70); lead.burner = t < 0.4 ? 1 : 0; lead.gear = t < 0.12 ? 1 : 0;
+      const lead = cubanLead(remap(t, 0.22, 1), 96, 16, 4, 1);
+      lead.burner = t < 0.45 ? 1 : 0;
+      lead.gear = 0;
+      lead.smoke = true;
       return formJets(lead, "diamond", [1, 2, 3, 4]);
     } });
   add({ id: "dirty-roll-5", name: "Dirty Roll on Takeoff, Blue Angel 5", ref: "2-12", tags: ["high", "solo", "takeoff"], min: 0, max: 700, kin: 0, kout: 200, dur: 8,
-    desc: "A 360° roll away from the crowd with the landing gear extended.",
-    jets: function (t) {
-      const roll = t > 0.22 && t < 0.78 ? (t - 0.22) / 0.56 * Math.PI * 2 : 0;
-      return [null, null, null, null, { x: lerp(-160, 170, t), y: 22, z: 0, yaw: 0, pitch: 0.05, roll: roll, gear: 1, n: 5, smoke: true }, null];
-    } });
-  add({ id: "immelmann-6", name: "Low Transition Immelmann, Blue Angel 6", ref: "2-13", tags: ["high", "solo", "takeoff"], min: 0, max: 4500, kin: 0, kout: 275, dur: 10,
-    desc: "Low transition, vertical pull to an Immelmann, then a 270° roll to clear behind the crowd.",
+    desc: "Takeoff, then a 360° roll away from the crowd with the gear still down. Clear is a climbing turn behind the crowd.",
     jets: function (t) {
       let p;
-      if (t < 0.25) { const u = remap(t, 0, 0.25); p = { x: lerp(-140, 0, u), y: lerp(4, 20, u), z: 0, yaw: 0, pitch: 0.12, roll: 0 }; }
-      else if (t < 0.62) { const a = remap(t, 0.25, 0.62) * Math.PI; p = { x: 20 * Math.sin(a), y: 20 + 70 * (1 - Math.cos(a)) * 0.85, z: 0, yaw: 0, pitch: a, roll: 0 }; }
-      else { const u = remap(t, 0.62, 1); p = { x: lerp(20, 160, u), y: lerp(130, 48, u), z: lerp(0, 55, u), yaw: 0.4, pitch: -0.15, roll: u * Math.PI * 1.5 }; }
-      p.n = 6; p.gear = t < 0.12 ? 1 : 0; p.burner = t < 0.5 ? 1 : 0; p.smoke = true;
+      if (t < 0.28) p = takeoffRun(remap(t, 0, 0.28), -120, -20);
+      else if (t < 0.78) {
+        const u = remap(t, 0.28, 0.78);
+        p = { x: lerp(-20, 90, u), y: 16, z: 0, yaw: 0, pitch: 0.04, roll: gatedRoll(t, 0.32, 0.72, 1, 1), gear: 1 };
+      } else {
+        const u = remap(t, 0.78, 1);
+        p = { x: 90 + u * 24, y: 16 + u * 24, z: u * 44, yaw: u * 0.7, pitch: 0.22, roll: 0, gear: 1 };
+      }
+      p.n = 5; p.smoke = true; p.burner = t < 0.4 ? 1 : 0;
+      return [null, null, null, null, p, null];
+    } });
+  add({ id: "immelmann-6", name: "Low Transition Immelmann, Blue Angel 6", ref: "2-13", tags: ["high", "solo", "takeoff"], min: 0, max: 4500, kin: 0, kout: 275, dur: 12,
+    desc: "Low transition, Immelmann (half-loop + half-roll to upright), track the show line left-to-right, then a 270° rolling turn that points the nose at the crowd and clears behind them above 2,000′.",
+    jets: function (t) {
+      let p;
+      const R = 88, x0 = 10, y0 = 16, dir = -1;
+      if (t < 0.16) p = takeoffRun(remap(t, 0, 0.16), 118, x0);
+      else if (t < 0.78) p = immelmannLead(remap(t, 0.16, 0.78), R, y0, x0, dir);
+      else {
+        const u = remap(t, 0.78, 1);
+        const x1 = x0 - dir * R * 1.4;
+        const y1 = y0 + 2 * R;
+        const turnR = 62;
+        const a = u * (Math.PI / 2);
+        p = {
+          x: x1 + turnR * Math.sin(a),
+          y: y1,
+          z: turnR * (1 - Math.cos(a))
+        };
+        orient(p, function (s) {
+          const v = remap(s, 0.78, 1);
+          const b = v * (Math.PI / 2);
+          return { x: x1 + turnR * Math.sin(b), y: y1, z: turnR * (1 - Math.cos(b)) };
+        }, t);
+        p.roll = u * Math.PI * 1.5;
+      }
+      p.n = 6; p.gear = t < 0.12 ? 1 : 0; p.burner = t < 0.45 ? 1 : 0; p.smoke = true;
       return [null, null, null, null, null, p];
     } });
   add({ id: "diamond-360", name: "Diamond 360", ref: "2-15", tags: ["high", "low", "flat"], min: 200, max: 800, kin: 310, kout: 290, dur: 10,
     desc: "Non-aerobatic right-to-left circular pass at less than 60° AOB.",
     jets: function (t) {
-      const a = lerp(-0.2, Math.PI * 1.2, t); const R = 155;
-      const lead = { x: Math.cos(a) * R, y: 30, z: 8 - Math.sin(a) * 70, roll: 0.7 };
-      orient(lead, function (u) { const b = lerp(-0.2, Math.PI * 1.2, u); return { x: Math.cos(b) * R, y: 30, z: 8 - Math.sin(b) * 70 }; }, t);
+      const a = lerp(-0.2, Math.PI * 1.2, t); const R = 132;
+      const lead = { x: Math.cos(a) * R, y: 30, z: 8 - Math.sin(a) * 58, roll: 0.7 };
+      orient(lead, function (u) { const b = lerp(-0.2, Math.PI * 1.2, u); return { x: Math.cos(b) * R, y: 30, z: 8 - Math.sin(b) * 58 }; }, t);
       lead.roll = 0.72; return formJets(lead, "diamond", [1, 2, 3, 4]);
     } });
   add({ id: "knife-edge", name: "Opposing Knife Edge", ref: "2-16", tags: ["high", "low", "flat", "solo"], min: 100, max: 1500, kin: 400, kout: 400, dur: 7,
     desc: "At CP each solo rolls to 90° bank before the cross.",
     jets: function (t) {
-      const bank = Math.abs(t - 0.5) < 0.18 ? Math.PI / 2 * (1 - Math.abs(t - 0.5) / 0.18) : 0;
+      const hold = 1 - smoother01(Math.abs(t - 0.5) / 0.22);
+      const bank = Math.max(0, hold) * Math.PI / 2;
       return [null, null, null, null,
-        { x: lerp(-220, 220, t), y: 24, z: 0, yaw: 0, pitch: 0, roll: bank, n: 5, smoke: true },
-        { x: lerp(220, -220, t), y: 24, z: 2, yaw: Math.PI, pitch: 0, roll: -bank, n: 6, smoke: true }];
+        { x: lerp(-175, 175, t), y: 24, z: 0, yaw: 0, pitch: 0, roll: bank, n: 5, smoke: true },
+        { x: lerp(175, -175, t), y: 24, z: 2, yaw: Math.PI, pitch: 0, roll: -bank, n: 6, smoke: true }];
     } });
   add({ id: "diamond-roll", name: "Diamond Roll", ref: "2-17", tags: ["high"], min: 200, max: 2600, kin: 365, kout: 365, dur: 9,
-    desc: "All four roll 360° in formation approaching CP.",
+    desc: "Climbing diamond pass: roll starts ~1,500′ and apexes near 3,200′. Same heading the whole way — aileron roll, not a turn.",
     jets: function (t) {
-      const lead = { x: lerp(200, -200, t), y: 28 + Math.sin(Math.PI * remap(t, 0.2, 0.8)) * 55, z: 0, yaw: Math.PI, pitch: 0, roll: t > 0.22 && t < 0.78 ? (t - 0.22) / 0.56 * Math.PI * 2 : 0 };
+      const lead = climbingPass(t, 160, -160, 22, 78, 0);
+      lead.roll = gatedRoll(t, 0.28, 0.72, 1, 1);
+      lead.smoke = true;
       return formJets(lead, "diamond", [1, 2, 3, 4]);
     } });
   add({ id: "inv-inv", name: "Inverted-to-Inverted Roll", ref: "2-18", tags: ["high", "solo"], min: 100, max: 1500, kin: 400, kout: 400, dur: 8,
     desc: "Solos roll inverted at the box edge, then 360° back to inverted across CP.",
     jets: function (t) {
-      const spin = t > 0.28 && t < 0.72 ? Math.PI + (t - 0.28) / 0.44 * Math.PI * 2 : Math.PI;
-      const y = 26 + remap(t, 0.5, 1) * 18;
+      const spin = Math.PI + gatedRoll(t, 0.26, 0.76, 1, 1);
+      const y = 26 + remap(t, 0.5, 1) * 16;
       return [null, null, null, null,
-        { x: lerp(-210, 210, t), y: y, z: 0, yaw: 0, pitch: 0, roll: spin, n: 5, smoke: true },
-        { x: lerp(210, -210, t), y: y, z: 3, yaw: Math.PI, pitch: 0, roll: -spin, n: 6, smoke: true }];
+        { x: lerp(-195, 195, t), y: y, z: 0, yaw: 0, pitch: 0, roll: spin, n: 5, smoke: true },
+        { x: lerp(195, -195, t), y: y, z: 3, yaw: Math.PI, pitch: 0, roll: -spin, n: 6, smoke: true }];
     } });
   add({ id: "d-aileron", name: "Diamond Aileron Roll", ref: "2-19", tags: ["high", "low", "flat"], min: 200, max: 400, kin: 400, kout: 400, dur: 7,
     desc: "Simultaneous 360° rolls inside the aerobatic box.",
     jets: function (t) {
-      const lead = showLinePass(t, { from: 190, to: -190, y: 26, z: 0 });
-      lead.roll = t > 0.25 && t < 0.75 ? (t - 0.25) / 0.5 * Math.PI * 2 : 0;
+      const lead = showLinePass(t, { from: 175, to: -175, y: 26, z: 0 });
+      lead.roll = gatedRoll(t, 0.22, 0.78, 1, 1);
       return formJets(lead, "diamond", [1, 2, 3, 4]);
     } });
   add({ id: "fortus", name: "Fortus", ref: "2-20", tags: ["high", "solo"], min: 200, max: 1000, kin: 275, kout: 275, dur: 9,
-    desc: "Dirty opposing pass. #5 inverted, #6 upright abeam for a mirror image.",
+    desc: "Both dirty from crowd right. #5 rolls inverted at the box edge; #6 stays upright abeam. They climb at CP; #5 rolls upright past ¾ NM and both clear crowd-left.",
     jets: function (t) {
-      const y = 22 + remap(t, 0.48, 0.85) * 36;
-      const r5 = t < 0.18 ? t / 0.18 * Math.PI : t < 0.72 ? Math.PI : Math.PI + remap(t, 0.72, 0.9) * Math.PI;
+      const climb = remap(t, 0.48, 0.78) * 28;
+      const r5 = t < 0.18 ? gatedRoll(t, 0.02, 0.18, 0.5, 1) : (t < 0.72 ? Math.PI : Math.PI + gatedRoll(t, 0.72, 0.9, 0.5, 1));
+      const pitch = remap(t, 0.48, 0.6) * 0.22;
+      const x = lerp(160, -160, t);
       return [null, null, null, null,
-        { x: lerp(210, -210, t), y: y, z: -6, yaw: Math.PI, pitch: t > 0.48 ? 0.25 : 0, roll: r5, n: 5, gear: 1, smoke: true },
-        { x: lerp(210, -210, t), y: y, z: 10, yaw: Math.PI, pitch: t > 0.48 ? 0.25 : 0, roll: 0, n: 6, gear: 1, smoke: true }];
+        { x: x, y: 22 + climb, z: -8, yaw: Math.PI, pitch: pitch, roll: r5, n: 5, gear: 1, smoke: true },
+        { x: x, y: 22 + climb, z: 10, yaw: Math.PI, pitch: pitch, roll: 0, n: 6, gear: 1, smoke: true }];
     } });
   add({ id: "dirty-loop", name: "Diamond Dirty Loop", ref: "2-21", tags: ["high"], min: 200, max: 6900, kin: 180, kout: 220, dur: 12,
     desc: "Diamond loop over CP with landing gear and hooks extended.",
-    jets: function (t) { const lead = loopLead(t, 95, 22, 0, 0); lead.gear = 1; return formJets(lead, "diamond", [1, 2, 3, 4]); } });
+    jets: function (t) { const lead = loopLead(t, 98, 18, 0, 0, -1); lead.gear = 1; lead.smoke = true; return formJets(lead, "diamond", [1, 2, 3, 4]); } });
   add({ id: "mrt", name: "Solo Minimum-Radius Turn", ref: "2-22", tags: ["high", "solo"], min: 150, max: 1000, kin: 350, kout: 200, dur: 9,
-    desc: "Non-aerobatic level 390° turn at 150′ AGL away from the crowd.",
+    desc: "Level 390° turn at 150′ AGL away from the crowd. After the turn #5 pitches vertical outboard of the show line; #6 rendezvous from behind the crowd.",
     jets: function (t) {
-      const a = t * Math.PI * 2.16, R = 70;
-      const p5 = { x: 40 + Math.cos(a) * R, y: 18, z: -20 - Math.sin(a) * R, n: 5, smoke: true, roll: 1.05 };
-      orient(p5, function (u) { const b = u * Math.PI * 2.16; return { x: 40 + Math.cos(b) * R, y: 18, z: -20 - Math.sin(b) * R }; }, t);
-      p5.roll = 1.05;
-      if (t > 0.82) { p5.y += remap(t, 0.82, 1) * 50; p5.pitch = 0.7; p5.roll = 0; }
-      return [null, null, null, null, p5, { x: lerp(160, 40, t), y: 40, z: 70 - t * 80, yaw: Math.PI, n: 6, smoke: true }];
+      const turn = Math.min(1, t / 0.78);
+      const a = turn * Math.PI * 2.16;
+      const R = 62;
+      const p5 = { x: 28 + Math.cos(a) * R, y: 16, z: -18 - Math.sin(a) * R, n: 5, smoke: true, roll: 1.05 };
+      orient(p5, function (u) {
+        const b = Math.min(1, u / 0.78) * Math.PI * 2.16;
+        return { x: 28 + Math.cos(b) * R, y: 16, z: -18 - Math.sin(b) * R };
+      }, t);
+      p5.roll = t < 0.78 ? 1.05 : 0;
+      if (t > 0.78) {
+        const u = remap(t, 0.78, 1);
+        p5.y += u * 70;
+        p5.pitch = 1.2;
+        p5.burner = 1;
+      }
+      const p6 = { x: lerp(140, 40, t), y: 36, z: lerp(80, 20, t), yaw: Math.PI, n: 6, smoke: true };
+      return [null, null, null, null, p5, p6];
     } });
   add({ id: "farvel", name: "Double Farvel", ref: "2-23", tags: ["high", "low", "flat"], min: 200, max: 400, kin: 385, kout: 385, dur: 9,
     desc: "#1 and #4 inverted, #2 and #3 upright. Diamond flat pass at 200′.",
     jets: function (t) {
-      const lead = showLinePass(t, { from: 200, to: -200, y: 24, z: 0 });
-      const inv = t < 0.12 ? t / 0.12 * Math.PI : t < 0.7 ? Math.PI : Math.PI + remap(t, 0.7, 0.9) * Math.PI;
-      if (t > 0.7) lead.y += remap(t, 0.7, 1) * 28;
+      const lead = showLinePass(t, { from: 175, to: -175, y: 24, z: 0 });
+      const inv = gatedRoll(t, 0.02, 0.16, 0.5, 1) + gatedRoll(t, 0.68, 0.9, 0.5, 1);
+      if (t > 0.7) lead.y += remap(t, 0.7, 1) * 24;
       return formJets(lead, "diamond", [1, 2, 3, 4], { 1: inv, 4: t < 0.78 ? inv : Math.PI + remap(t, 0.78, 0.95) * Math.PI });
     } });
   add({ id: "opp-mrt", name: "Opposing Minimum-Radius Turn", ref: "2-24", tags: ["high", "solo"], min: 200, max: 1500, kin: 400, kout: 400, dur: 10,
-    desc: "Abeam from behind the crowd, 270° rolls away, recross over CP, then nose-up rolling clear.",
+    desc: "Abeam from behind the crowd, extend past the show line, 270° rolls away into a recross over CP, then 40° nose-up with 3½ rolls.",
     jets: function (t) {
-      let a, b;
-      if (t < 0.35) {
-        a = { x: 30, y: 32, z: lerp(90, -40, remap(t, 0, 0.35)), yaw: -Math.PI / 2, n: 5 };
-        b = { x: -30, y: 32, z: lerp(90, -40, remap(t, 0, 0.35)), yaw: -Math.PI / 2, n: 6 };
-      } else if (t < 0.55) {
-        const u = remap(t, 0.35, 0.55);
-        a = { x: 30 + Math.sin(u * 1.5 * Math.PI) * 50, y: 24, z: -40 + Math.cos(u * 1.5 * Math.PI) * 40, n: 5, roll: u * 1.5 * Math.PI };
-        b = { x: -30 - Math.sin(u * 1.5 * Math.PI) * 50, y: 24, z: -40 + Math.cos(u * 1.5 * Math.PI) * 40, n: 6, roll: -u * 1.5 * Math.PI };
-        orient(a, function (s) { const v = remap(s, 0.35, 0.55); return { x: 30 + Math.sin(v * 1.5 * Math.PI) * 50, y: 24, z: -40 + Math.cos(v * 1.5 * Math.PI) * 40 }; }, t);
-        orient(b, function (s) { const v = remap(s, 0.35, 0.55); return { x: -30 - Math.sin(v * 1.5 * Math.PI) * 50, y: 24, z: -40 + Math.cos(v * 1.5 * Math.PI) * 40 }; }, t);
-      } else if (t < 0.72) {
-        const u = remap(t, 0.55, 0.72);
-        a = { x: lerp(-80, 80, u), y: 22, z: 0, yaw: 0, n: 5 }; b = { x: lerp(80, -80, u), y: 22, z: 2, yaw: Math.PI, n: 6 };
-      } else {
-        const u = remap(t, 0.72, 1);
-        a = { x: 80 + u * 40, y: 22 + u * 70, z: 10, yaw: 0.2, pitch: 0.7, roll: u * 3.5 * Math.PI, n: 5 };
-        b = { x: -80 - u * 40, y: 22 + u * 70, z: 10, yaw: Math.PI - 0.2, pitch: 0.7, roll: -u * 3.5 * Math.PI, n: 6 };
+      function solo(sign, n) {
+        let p;
+        if (t < 0.32) {
+          const u = remap(t, 0, 0.32);
+          p = { x: sign * 28, y: 28, z: lerp(95, -38, u), yaw: -Math.PI / 2, pitch: 0, roll: 0 };
+        } else if (t < 0.52) {
+          const u = remap(t, 0.32, 0.52);
+          const ang = u * 1.5 * Math.PI;
+          p = {
+            x: sign * (28 + Math.sin(ang) * 48),
+            y: 24,
+            z: -38 + Math.cos(ang) * 38,
+            roll: sign * ang
+          };
+          orient(p, function (s) {
+            const v = remap(s, 0.32, 0.52);
+            const a2 = v * 1.5 * Math.PI;
+            return { x: sign * (28 + Math.sin(a2) * 48), y: 24, z: -38 + Math.cos(a2) * 38 };
+          }, t);
+          p.roll = sign * ang;
+        } else if (t < 0.72) {
+          const u = remap(t, 0.52, 0.72);
+          p = { x: lerp(sign * -70, sign * 70, u), y: 20, z: 0, yaw: sign > 0 ? 0 : Math.PI, pitch: 0, roll: 0 };
+        } else {
+          const u = remap(t, 0.72, 1);
+          p = { x: sign * 70 + sign * u * 30, y: 20 + u * 55, z: u * 18, yaw: sign > 0 ? 0.15 : Math.PI - 0.15, pitch: 0.7, roll: sign * u * 3.5 * Math.PI };
+        }
+        p.n = n; p.smoke = true;
+        return p;
       }
-      a.smoke = true; b.smoke = true;
-      return [null, null, null, null, a, b];
+      return [null, null, null, null, solo(1, 5), solo(-1, 6)];
     } });
-  add({ id: "opp-hrolls", name: "Opposing Horizontal Rolls", ref: "2-26", tags: ["high", "solo"], min: 100, max: 7500, kin: 400, kout: 200, dur: 9,
-    desc: "Climb into 720° of roll, then pull 90° nose-up and clear behind the crowd.",
+  add({ id: "opp-hrolls", name: "Opposing Horizontal Rolls", ref: "2-26", tags: ["high", "solo"], min: 100, max: 7500, kin: 400, kout: 200, dur: 10,
+    desc: "Slight climb, 720° of aileron roll, then a 90° pull to vertical and a 90° roll to clear behind the crowd.",
     jets: function (t) {
-      const spin = t < 0.55 ? t / 0.55 * Math.PI * 4 : 0; const climb = t > 0.55 ? remap(t, 0.55, 0.78) : 0;
-      return [null, null, null, null,
-        { x: lerp(-200, 40, Math.min(t, 0.7)) + remap(t, 0.7, 1) * 30, y: 24 + climb * 90, z: remap(t, 0.78, 1) * 50, yaw: 0, pitch: climb * 1.2, roll: spin + remap(t, 0.55, 0.7) * Math.PI / 2, n: 5, smoke: true },
-        { x: lerp(200, -40, Math.min(t, 0.7)) - remap(t, 0.7, 1) * 30, y: 24 + climb * 90, z: remap(t, 0.78, 1) * 50, yaw: Math.PI, pitch: climb * 1.2, roll: -spin - remap(t, 0.55, 0.7) * Math.PI / 2, n: 6, smoke: true }];
+      function solo(dir, n) {
+        let p;
+        if (t < 0.52) {
+          const u = t / 0.52;
+          p = { x: lerp(dir * 155, dir * 10, u), y: 22 + u * 8, z: 0, yaw: dir > 0 ? Math.PI : 0, pitch: 0.06, roll: gatedRoll(t, 0.12, 0.5, 2, dir) };
+        } else if (t < 0.72) {
+          const u = remap(t, 0.52, 0.72);
+          p = { x: dir * 10, y: 30 + u * 90, z: 0, yaw: dir > 0 ? Math.PI : 0, pitch: u * 1.4, roll: 0 };
+        } else {
+          const u = remap(t, 0.72, 1);
+          p = { x: dir * 10 + u * 8, y: 120 + u * 20, z: u * 50, yaw: dir > 0 ? Math.PI - 0.4 : 0.4, pitch: 1.2 - u * 0.4, roll: dir * u * Math.PI / 2 };
+        }
+        p.n = n; p.smoke = true;
+        return p;
+      }
+      return [null, null, null, null, solo(-1, 5), solo(1, 6)];
     } });
   add({ id: "changeover", name: "Changeover Roll", ref: "2-27a", tags: ["high"], min: 300, max: 5300, kin: 365, kout: 350, dur: 10,
-    desc: "Left echelon, 360° left roll shifting back to Diamond, egress behind crowd-right.",
+    desc: "From crowd-left: left echelon, climb, 360° left roll shifting back to Diamond 90° through the roll, then egress behind crowd-right.",
     jets: function (t) {
-      const lead = { x: lerp(-200, 180, t), y: 32 + Math.sin(Math.PI * remap(t, 0.2, 0.85)) * 70, z: t < 0.5 ? 18 : lerp(18, 40, remap(t, 0.5, 1)), yaw: 0, pitch: 0, roll: t > 0.28 && t < 0.72 ? -(t - 0.28) / 0.44 * Math.PI * 2 : 0 };
-      return formJets(lead, t < 0.35 || t < 0.55 ? "echelonL" : "diamond", [1, 2, 3, 4]);
+      const formBlend = smoother01(remap(t, 0.38, 0.62));
+      const lead = climbingPass(t, -155, 150, 26, 82, 16);
+      lead.z = lerp(16, 36, remap(t, 0.55, 1));
+      lead.roll = gatedRoll(t, 0.28, 0.7, 1, -1);
+      lead.smoke = true;
+      const a = formJets(lead, "echelonL", [1, 2, 3, 4]);
+      if (formBlend <= 0) return a;
+      const b = formJets(lead, "diamond", [1, 2, 3, 4]);
+      if (formBlend >= 1) return b;
+      return a.map(function (ja, i) { return ja && b[i] ? mixPose(ja, b[i], formBlend) : (b[i] || ja); });
     } });
   add({ id: "sneak", name: "Sneak Pass, Blue Angel 5", ref: "2-28", tags: ["high", "low", "flat", "solo"], min: 50, max: 500, kin: 600, kout: 600, dur: 5,
     desc: "Flat pass on the 500′ show line at 50′ AGL and 600 knots.",
     jets: function (t) {
-      const p = { x: lerp(-240, 240, t), y: 8, z: 22, yaw: 0, pitch: 0, roll: 0, n: 5, burner: 1, smoke: true };
-      if (t > 0.78) { p.z += remap(t, 0.78, 1) * 40; p.y += remap(t, 0.78, 1) * 16; p.yaw = 0.45; }
+      const p = { x: lerp(-185, 185, t), y: 8, z: 22, yaw: 0, pitch: 0, roll: 0, n: 5, burner: 1, smoke: true };
+      if (t > 0.78) {
+        const u = remap(t, 0.78, 1);
+        p.z += u * 36; p.y += u * 14; p.yaw = u * 0.45;
+      }
       return [null, null, null, null, p, null];
     } });
   add({ id: "vert-rolls", name: "Sneak to Vertical Rolls, Blue Angel 6", ref: "2-29", tags: ["high", "solo"], min: 500, max: 15000, kin: 600, kout: 200, dur: 9,
-    desc: "Past CP, pull ~85° nose-high and execute vertical rolls.",
+    desc: "From behind the crowd, level at 500′ through CP, then pull ~85° nose-high and fly vertical rolls.",
     jets: function (t) {
       let p;
-      if (t < 0.4) p = { x: 8, y: 28, z: lerp(110, -10, remap(t, 0, 0.4)), yaw: -Math.PI / 2, pitch: 0, roll: 0 };
-      else { const u = remap(t, 0.4, 1); p = { x: 8, y: 28 + u * 160, z: -10 - u * 20, yaw: -Math.PI / 2, pitch: 1.4, roll: u * Math.PI * 6 }; }
+      if (t < 0.36) {
+        const u = remap(t, 0, 0.36);
+        p = { x: 0, y: 26, z: lerp(100, 0, u), yaw: -Math.PI / 2, pitch: 0, roll: 0 };
+      } else {
+        const u = remap(t, 0.36, 1);
+        const pull = Math.min(1, u / 0.18);
+        p = { x: 0, y: 26 + u * 150, z: -u * 8, yaw: -Math.PI / 2, pitch: pull * 1.48, roll: gatedRoll(t, 0.48, 0.98, 4, 1) };
+      }
       p.n = 6; p.burner = 1; p.smoke = true;
       return [null, null, null, null, null, p];
     } });
-  add({ id: "la-loop", name: "Line Abreast Loop", ref: "2-30", tags: ["high"], min: 200, max: 8400, kin: 420, kout: 350, dur: 12,
-    desc: "#1–#5 line-abreast loop over CP, then Diamond reforms and detaches #5.",
+  add({ id: "la-loop", name: "Line Abreast Loop", ref: "2-30", tags: ["high"], min: 200, max: 8400, kin: 420, kout: 350, dur: 14,
+    desc: "#1–#5 transition to line-abreast, loop over CP, then #1–#4 return to Diamond and detach #5 crowd-left.",
     jets: function (t) {
-      if (t < 0.18) return formJets(showLinePass(remap(t, 0, 0.18), { from: 210, to: 40, y: 26, z: 0 }), t < 0.1 ? "diamond" : "lineabreast", [1, 2, 3, 4, 5]);
-      if (t < 0.82) return formJets(loopLead(remap(t, 0.18, 0.82), 90, 26, 0, 0), "lineabreast", [1, 2, 3, 4, 5]);
-      const lead = showLinePass(remap(t, 0.82, 1), { from: 0, to: -200, y: 26, z: 0 }); lead.yaw = Math.PI;
-      return formJets(lead, "diamond", [1, 2, 3, 4]).map(function (j, i) { return i === 4 ? { x: lead.x - 40, y: 40, z: -30, yaw: Math.PI, n: 5, smoke: true } : j; });
+      if (t < 0.16) {
+        const lead = showLinePass(remap(t, 0, 0.16), { from: 150, to: 0, y: 22, z: 0 });
+        const blend = smoother01(remap(t, 0.04, 0.14));
+        const a = formJets(lead, "diamond", [1, 2, 3, 4, 5]);
+        const b = formJets(lead, "lineabreast", [1, 2, 3, 4, 5]);
+        if (blend <= 0) return a;
+        if (blend >= 1) return b;
+        return a.map(function (ja, i) { return ja && b[i] ? mixPose(ja, b[i], blend) : (b[i] || ja); });
+      }
+      if (t < 0.78) return formJets(loopLead(remap(t, 0.16, 0.78), 100, 22, 0, 0, -1), "lineabreast", [1, 2, 3, 4, 5]);
+      const u = remap(t, 0.78, 1);
+      const lead = { x: lerp(0, -140, u), y: 22, z: 0, yaw: Math.PI, pitch: 0, roll: 0 };
+      const d = formJets(lead, "diamond", [1, 2, 3, 4]);
+      d[4] = { x: lead.x - 28, y: 28 + u * 18, z: -24 - u * 16, yaw: Math.PI, n: 5, smoke: true };
+      return d;
     } });
   add({ id: "four-point", name: "Opposing Four-Point Roll", ref: "2-31", tags: ["high", "low", "flat", "solo"], min: 200, max: 1500, kin: 400, kout: 400, dur: 8,
     desc: "Left four-point rolls, crossing CP inverted.",
     jets: function (t) {
-      function hes(u) { const idx = Math.min(3, Math.floor(u * 4)); const local = u * 4 - idx; const hold = local < 0.35 ? 0 : (local - 0.35) / 0.65; return -(idx + hold) * Math.PI / 2; }
-      const spin = t > 0.2 && t < 0.85 ? hes(remap(t, 0.2, 0.85)) : (t >= 0.85 ? -Math.PI * 2 : 0);
+      const spin = hesitationRoll(t, 0.18, 0.84, 4, -1);
       return [null, null, null, null,
-        { x: lerp(-210, 210, t), y: 24, z: 0, yaw: 0, roll: spin, n: 5, smoke: true },
-        { x: lerp(210, -210, t), y: 24, z: 3, yaw: Math.PI, roll: spin, n: 6, smoke: true }];
+        { x: lerp(-175, 175, t), y: 24, z: 0, yaw: 0, roll: spin, n: 5, smoke: true },
+        { x: lerp(175, -175, t), y: 24, z: 3, yaw: Math.PI, roll: spin, n: 6, smoke: true }];
     } });
   add({ id: "vert-break", name: "Diamond Vertical Break", ref: "2-32", tags: ["high"], min: 500, max: 9000, kin: 400, kout: 300, dur: 9,
-    desc: "Trail from behind the crowd, climb, diamond, then split four ways.",
+    desc: "Trail from behind the crowd, climb, diamond at 30° nose-up, then a four-way split at 60° nose-up.",
     call: function (t) { return t > 0.48 && t < 0.62 ? "BREAK" : ""; },
     jets: function (t) {
-      if (t < 0.42) {
-        const u = remap(t, 0, 0.42);
-        const lead = { x: 0, y: 28 + u * 50, z: lerp(100, -5, u), yaw: -Math.PI / 2, pitch: 0.35 + u * 0.4, roll: 0 };
-        return formJets(lead, u < 0.55 ? "trail" : "diamond", [1, 2, 3, 4]);
+      if (t < 0.46) {
+        const u = remap(t, 0, 0.46);
+        const lead = { x: 0, y: 24 + u * 70, z: lerp(95, 6, u), yaw: -Math.PI / 2, pitch: 0.35 + u * 0.7, roll: 0, smoke: true };
+        const blend = smoother01(remap(u, 0.4, 0.7));
+        const a = formJets(lead, "trail", [1, 2, 3, 4]);
+        if (blend <= 0) return a;
+        const b = formJets(lead, "diamond", [1, 2, 3, 4]);
+        if (blend >= 1) return b;
+        return a.map(function (ja, i) { return ja && b[i] ? mixPose(ja, b[i], blend) : (b[i] || ja); });
       }
-      const u = remap(t, 0.42, 1);
-      return [{ x: 0, z: -1, n: 1 }, { x: 1, z: 0.2, n: 2 }, { x: -1, z: 0.2, n: 3 }, { x: 0, z: 1, n: 4 }].map(function (d) {
-        return { x: d.x * u * 140, y: 78 + u * 40, z: -5 + d.z * u * 110, yaw: Math.atan2(d.z, d.x || 0.001), pitch: 0.5, n: d.n, smoke: true, burner: 1 };
+      const u = remap(t, 0.46, 1);
+      return [{ x: 0, z: -1, n: 1 }, { x: 0.95, z: 0.15, n: 2 }, { x: -0.95, z: 0.15, n: 3 }, { x: 0, z: 1, n: 4 }].map(function (d) {
+        return { x: d.x * u * 120, y: 94 + u * 70, z: 6 + d.z * u * 90, yaw: Math.atan2(d.z, d.x || 0.001), pitch: 1.0, n: d.n, smoke: true, burner: 1 };
       }).concat([null, null]);
     } });
-  add({ id: "vert-pitch", name: "Vertical Pitch", ref: "2-33", tags: ["high", "solo"], min: 50, max: 9000, kin: 420, kout: 480, dur: 9,
-    desc: "Both solos pull 65–70° nose-up, Split-S, cross over CP, then a right 360° roll.",
+  add({ id: "vert-pitch", name: "Vertical Pitch", ref: "2-33", tags: ["high", "solo"], min: 50, max: 9000, kin: 420, kout: 480, dur: 11,
+    desc: "Opposing pull to 65–70° nose-up, roll inverted, Split-S through CP, then a right 360° roll and clear behind the crowd.",
     jets: function (t) {
-      function solo(sign, n) {
-        if (t < 0.28) return { x: sign * lerp(180, 40, remap(t, 0, 0.28)), y: 16 + remap(t, 0.12, 0.28) * 80, z: 0, yaw: sign > 0 ? Math.PI : 0, pitch: 1.1, roll: remap(t, 0.18, 0.28) * Math.PI, n: n, smoke: true };
-        if (t < 0.62) { const u = remap(t, 0.28, 0.62); return { x: sign * 20 * Math.cos(u * Math.PI), y: 96 - 70 * (1 - Math.cos(u * Math.PI)), z: 0, yaw: sign > 0 ? Math.PI : 0, pitch: Math.PI + u * Math.PI, roll: Math.PI, n: n, smoke: true }; }
+      function solo(dir, n) {
+        const yawIn = dir > 0 ? Math.PI : 0;
+        if (t < 0.24) {
+          const u = remap(t, 0, 0.24);
+          return { x: dir * lerp(150, 40, u), y: 14 + remap(u, 0.32, 1) * 70, z: 0, yaw: yawIn, pitch: remap(u, 0.32, 1) * 1.15, roll: remap(u, 0.5, 1) * Math.PI, n: n, smoke: true };
+        }
+        if (t < 0.62) {
+          const u = remap(t, 0.24, 0.62);
+          const a = u * Math.PI;
+          return { x: dir * 40 * Math.cos(a), y: 84 - 62 * (1 - Math.cos(a)), z: 0, yaw: yawIn, pitch: Math.PI + a, roll: Math.PI, n: n, smoke: true };
+        }
         const u = remap(t, 0.62, 1);
-        return { x: sign * lerp(-30, 160, u) * (sign > 0 ? -1 : 1), y: 26, z: u * 40, yaw: sign > 0 ? 0.4 : Math.PI - 0.4, roll: u * Math.PI * 2, n: n, smoke: true };
+        return { x: dir * lerp(-40, 130, u) * (dir > 0 ? -1 : 1), y: 22, z: u * 36, yaw: dir > 0 ? 0.35 : Math.PI - 0.35, pitch: 0, roll: u * Math.PI * 2, n: n, smoke: true };
       }
       return [null, null, null, null, solo(-1, 5), solo(1, 6)];
     } });
   add({ id: "tuck", name: "Tuck-Over Roll", ref: "2-35", tags: ["low", "flat", "solo"], min: 200, max: 1500, kin: 400, kout: 400, dur: 7,
     desc: "Simultaneous left 450° rolls at CP, clear behind the crowd.",
     jets: function (t) {
-      const spin = t > 0.35 ? -(t - 0.35) / 0.5 * Math.PI * 2.5 : 0;
-      const a = { x: lerp(-200, 200, t), y: 24, z: 8, yaw: 0, roll: spin, n: 5, smoke: true };
-      const b = { x: lerp(-200, 200, t), y: 24, z: -8, yaw: 0, roll: spin, n: 6, smoke: true };
-      if (t > 0.72) { a.z += remap(t, 0.72, 1) * 50; b.z += remap(t, 0.72, 1) * 50; }
+      const spin = gatedRoll(t, 0.32, 0.86, 1.25, -1);
+      const a = { x: lerp(-170, 170, t), y: 24, z: 8, yaw: 0, roll: spin, n: 5, smoke: true };
+      const b = { x: lerp(-170, 170, t), y: 24, z: -8, yaw: 0, roll: spin, n: 6, smoke: true };
+      if (t > 0.72) { const u = remap(t, 0.72, 1); a.z += u * 40; b.z += u * 40; }
       return [null, null, null, null, a, b];
     } });
   add({ id: "low-break", name: "Diamond Low-Break Cross", ref: "2-36", tags: ["low", "flat"], min: 150, max: 700, kin: 360, kout: 330, dur: 11,
-    desc: "Split four ways from behind the crowd, reverse, recross CP at staggered altitudes.",
+    desc: "Split four ways from behind the crowd, outbound at 700′, then a reversal turn (not a reverse) and recross CP at 150 / 300 / 450′.",
     call: function (t) { return t > 0.18 && t < 0.32 ? "BREAK" : ""; },
     jets: function (t) {
-      const dirs = [{ h: Math.PI, y: 18, n: 1 }, { h: Math.PI * 0.15, y: 32, n: 2 }, { h: -Math.PI * 0.15, y: 44, n: 3 }, { h: 0, y: 18, n: 4 }];
-      if (t < 0.2) return formJets({ x: 0, y: 32, z: lerp(100, 10, remap(t, 0, 0.2)), yaw: -Math.PI / 2, pitch: 0, roll: 0 }, "diamond", [1, 2, 3, 4]);
+      const dirs = [{ h: Math.PI, yIn: 16, n: 1 }, { h: 0.4, yIn: 28, n: 2 }, { h: -0.4, yIn: 40, n: 3 }, { h: 0, yIn: 16, n: 4 }];
+      if (t < 0.18) return formJets({ x: 0, y: 28, z: lerp(95, 12, remap(t, 0, 0.18)), yaw: -Math.PI / 2, pitch: 0, roll: 0 }, "diamond", [1, 2, 3, 4]);
       return dirs.map(function (d) {
-        if (t < 0.48) { const u = remap(t, 0.2, 0.48); return { x: Math.cos(d.h) * u * 130, y: d.y, z: 10 + Math.sin(d.h) * u * 80, yaw: d.h, n: d.n, smoke: true }; }
-        const u = remap(t, 0.48, 1); const x0 = Math.cos(d.h) * 130, z0 = 10 + Math.sin(d.h) * 80;
-        return { x: lerp(x0, 0, u), y: d.y, z: lerp(z0, 0, u), yaw: Math.atan2(-z0, -x0), n: d.n, smoke: true };
+        if (t < 0.42) {
+          const u = remap(t, 0.18, 0.42);
+          return { x: Math.cos(d.h) * u * 115, y: 32, z: 12 + Math.sin(d.h) * u * 70, yaw: d.h, n: d.n, smoke: true };
+        }
+        if (t < 0.62) {
+          const u = remap(t, 0.42, 0.62);
+          const x0 = Math.cos(d.h) * 115, z0 = 12 + Math.sin(d.h) * 70;
+          const a = u * Math.PI;
+          return {
+            x: x0 + Math.cos(d.h + Math.PI / 2) * Math.sin(a) * 28,
+            y: 32,
+            z: z0 + Math.sin(d.h + Math.PI / 2) * Math.sin(a) * 28,
+            yaw: d.h + a, n: d.n, smoke: true, roll: 0.7
+          };
+        }
+        const u = remap(t, 0.62, 1);
+        const x0 = Math.cos(d.h) * 115, z0 = 12 + Math.sin(d.h) * 70;
+        return { x: lerp(x0, 0, u), y: d.yIn, z: lerp(z0, 0, u), yaw: Math.atan2(-z0, -x0), n: d.n, smoke: true };
       }).concat([null, null]);
     } });
   add({ id: "high-alpha", name: "Section High-Alpha Pass", ref: "2-37", tags: ["low", "flat", "solo"], min: 500, max: 1500, kin: 120, kout: 250, dur: 9,
-    desc: "Both solos ~120 KCAS abeam. #6 pitches up and rolls inverted; #5 continues straight.",
+    desc: "Both solos ~120 KCAS abeam. At CP #5 continues straight; #6 pitches to 60°, rolls inverted, then clears behind the crowd.",
     jets: function (t) {
-      const x = lerp(-160, 160, t);
-      const a = { x: x, y: 28, z: 10, yaw: 0, pitch: 0.55, roll: 0, n: 5, smoke: true };
-      const b = t < 0.5 ? { x: x, y: 28, z: -10, yaw: 0, pitch: 0.55, roll: 0, n: 6, smoke: true }
-        : { x: x + remap(t, 0.5, 1) * 20, y: 28 + remap(t, 0.5, 1) * 55, z: -10 + remap(t, 0.5, 1) * 50, yaw: -0.4, pitch: 0.9 - remap(t, 0.5, 1) * 0.4, roll: remap(t, 0.5, 1) * Math.PI * 1.5, n: 6, smoke: true };
+      const x = lerp(-140, 140, t);
+      const a = { x: x, y: 26, z: 12, yaw: 0, pitch: 0.48, roll: 0, n: 5, smoke: true };
+      let b;
+      if (t < 0.5) b = { x: x, y: 26, z: -12, yaw: 0, pitch: 0.48, roll: 0, n: 6, smoke: true };
+      else {
+        const u = remap(t, 0.5, 1);
+        b = { x: x + u * 10, y: 26 + Math.min(1, u / 0.35) * 50, z: -12 + u * 48, yaw: -0.35 * u, pitch: 0.48 + Math.min(1, u / 0.35) * 0.55, roll: gatedRoll(t, 0.58, 0.82, 0.5, -1) + gatedRoll(t, 0.82, 1, 0.25, 1), n: 6, smoke: true };
+      }
       return [null, null, null, null, a, b];
     } });
   add({ id: "burner270", name: "Diamond Burner 270", ref: "2-38", tags: ["low", "flat"], min: 200, max: 500, kin: 220, kout: 400, dur: 10,
-    desc: "Slightly climbing left 270° in afterburner in front of the crowd.",
+    desc: "From crowd-left in front of the crowd: slightly climbing left 270° in afterburner, then egress crowd-left behind the crowd.",
     jets: function (t) {
-      const a = lerp(-0.15, Math.PI * 1.5, t); const R = 95;
-      const lead = { x: -40 + Math.cos(a) * R, y: 24 + Math.sin(t * Math.PI) * 10, z: 30 + Math.sin(a) * R * 0.55, burner: 1 };
-      orient(lead, function (u) { const b = lerp(-0.15, Math.PI * 1.5, u); return { x: -40 + Math.cos(b) * R, y: 24, z: 30 + Math.sin(b) * R * 0.55 }; }, t);
-      lead.burner = 1; lead.roll = 0.85; return formJets(lead, "diamond", [1, 2, 3, 4]);
+      const a = lerp(-0.2, Math.PI * 1.5, t); const R = 88;
+      const lead = { x: -28 + Math.cos(a) * R, y: 22 + t * 14, z: 18 + Math.sin(a) * R * 0.62, burner: 1 };
+      orient(lead, function (u) { const b = lerp(-0.2, Math.PI * 1.5, u); return { x: -28 + Math.cos(b) * R, y: 22 + u * 14, z: 18 + Math.sin(b) * R * 0.62 }; }, t);
+      lead.burner = 1; lead.roll = 0.9; lead.smoke = true;
+      return formJets(lead, "diamond", [1, 2, 3, 4]);
     } });
   add({ id: "delta-roll", name: "Delta Roll", ref: "2-39", tags: ["low"], min: 200, max: 4300, kin: 365, kout: 365, dur: 10,
-    desc: "All six climb toward CP and roll 360° at about 4,000′.",
+    desc: "From crowd-right behind the crowd, climb toward CP and roll 360° near 4,000′. Egress crowd-left in front of the crowd.",
     jets: function (t) {
-      const lead = { x: lerp(160, -180, t), y: 26 + Math.sin(Math.PI * remap(t, 0.15, 0.85)) * 72, z: t < 0.45 ? lerp(50, 0, remap(t, 0, 0.45)) : lerp(0, 30, remap(t, 0.45, 1)), yaw: Math.PI, pitch: 0, roll: t > 0.3 && t < 0.7 ? (t - 0.3) / 0.4 * Math.PI * 2 : 0 };
+      const lead = climbingPass(t, 150, -150, 22, 92, lerp(40, 8, t));
+      lead.z = lerp(48, 10, t);
+      lead.roll = gatedRoll(t, 0.32, 0.68, 1, 1);
+      lead.smoke = true;
       return formJets(lead, "delta", [1, 2, 3, 4, 5, 6]);
     } });
-  add({ id: "fleur", name: "Fleur De Lis", ref: "2-40", tags: ["high"], min: 200, max: 8000, kin: 420, kout: 350, dur: 11,
-    desc: "Double-V climb, six-way split. Solos 1½ rolls; Diamond loops over CP.",
-    call: function (t) { return t > 0.28 && t < 0.42 ? "SPLIT" : ""; },
+  add({ id: "fleur", name: "Fleur De Lis", ref: "2-40", tags: ["high"], min: 200, max: 8000, kin: 420, kout: 350, dur: 13,
+    desc: "Double-V climb toward CP, six-way split. Solos fly 1½ rolls crowd-right; Diamond loops over CP and egresses crowd-right.",
+    call: function (t) { return t > 0.26 && t < 0.4 ? "SPLIT" : ""; },
     jets: function (t) {
-      if (t < 0.3) return formJets({ x: lerp(40, 10, remap(t, 0, 0.3)), y: 30 + remap(t, 0, 0.3) * 40, z: lerp(80, 5, remap(t, 0, 0.3)), yaw: -Math.PI / 2, pitch: 0.55 }, "doubleV", [1, 2, 3, 4, 5, 6]);
-      const u = remap(t, 0.3, 1);
-      const dJets = formJets(loopLead(remap(t, 0.38, 1), 80, 50, 0, 0), "diamond", [1, 2, 3, 4]);
-      dJets[4] = { x: 20 + u * 150, y: 70 + Math.sin(u * Math.PI) * 30, z: 10 + u * 40, yaw: 0.2, roll: u * Math.PI * 3, n: 5, smoke: true, burner: 1 };
-      dJets[5] = { x: -20 - u * 40, y: 70 + Math.sin(u * Math.PI) * 30, z: 10 + u * 90, yaw: 1.2, roll: -u * Math.PI * 3, n: 6, smoke: true, burner: 1 };
+      if (t < 0.28) {
+        const u = remap(t, 0, 0.28);
+        return formJets({ x: 0, y: 24 + u * 50, z: lerp(88, 10, u), yaw: -Math.PI / 2, pitch: 0.55, roll: 0, smoke: true }, "doubleV", [1, 2, 3, 4, 5, 6]);
+      }
+      const dJets = formJets(loopLead(remap(t, 0.28, 1), 96, 74, 0, 0, 1), "diamond", [1, 2, 3, 4]);
+      const u = remap(t, 0.28, 1);
+      dJets[4] = { x: 12 + u * 130, y: 74 + Math.sin(u * Math.PI) * 20, z: 10 + u * 36, yaw: 0.15, pitch: 0.1, roll: u * Math.PI * 3, n: 5, smoke: true, burner: 1 };
+      dJets[5] = { x: -12 + u * 110, y: 74 + Math.sin(u * Math.PI) * 20, z: 10 + u * 55, yaw: 0.55, pitch: 0.1, roll: -u * Math.PI * 3, n: 6, smoke: true, burner: 1 };
       return dJets;
     } });
   add({ id: "loop-break", name: "Loop Break / 6-Plane Cross", ref: "2-41", tags: ["high"], min: 150, max: 8400, kin: 420, kout: 400, dur: 16,
-    desc: "Six-ship loop, six-way split, Half-Cuban reversal, recross at 150 / 300 / 450′.",
+    desc: "Six-ship loop from crowd-right. Split on the vertical down, outbound to 3 NM, Half-Cuban reversal, recross at 150 / 300 / 450′.",
     call: function (t) { return t > 0.36 && t < 0.5 ? "BREAK" : t > 0.82 ? "CROSS" : ""; },
     jets: function (t) {
-      const headings = [Math.PI, 0.4, -2.4, 0, 2.2, -0.5]; const altsIn = [18, 30, 44, 18, 30, 44];
-      if (t < 0.4) { const lead = loopLead(remap(t, 0, 0.4) * 0.62, 88, 24, 80, 0); lead.yaw = Math.PI; return formJets(lead, "delta", [1, 2, 3, 4, 5, 6]); }
+      const headings = [Math.PI, 0.45, -2.5, 0, 2.2, -0.45]; const altsIn = [16, 28, 40, 16, 28, 40];
+      if (t < 0.42) {
+        const lead = loopLead(remap(t, 0, 0.42) * 0.72, 100, 20, 20, 0, -1);
+        return formJets(lead, "delta", [1, 2, 3, 4, 5, 6]);
+      }
       return headings.map(function (h, i) {
         const n = i + 1;
-        if (t < 0.62) { const u = remap(t, 0.4, 0.62); return { x: Math.cos(h) * u * 170, y: 40, z: Math.sin(h) * u * 90, yaw: h, n: n, smoke: true }; }
-        if (t < 0.78) {
-          const u = remap(t, 0.62, 0.78); const a = u * Math.PI * 1.1; const x0 = Math.cos(h) * 170, z0 = Math.sin(h) * 90;
-          return { x: x0 - Math.sin(h) * Math.sin(a) * 40, y: 40 + (1 - Math.cos(a)) * 35, z: z0 + Math.cos(h) * Math.sin(a) * 40, yaw: h + a, pitch: a, n: n, smoke: true };
+        if (t < 0.6) {
+          const u = remap(t, 0.42, 0.6);
+          return { x: Math.cos(h) * u * 125, y: lerp(90, 36, u), z: Math.sin(h) * u * 70, yaw: h, pitch: -0.15, n: n, smoke: true };
         }
-        const u = remap(t, 0.78, 1); const x0 = Math.cos(h) * 170, z0 = Math.sin(h) * 90;
+        if (t < 0.78) {
+          const u = remap(t, 0.6, 0.78);
+          const a = u * Math.PI * 1.2;
+          const x0 = Math.cos(h) * 125, z0 = Math.sin(h) * 70;
+          return { x: x0 - Math.sin(h) * Math.sin(a) * 36, y: 36 + (1 - Math.cos(a)) * 32, z: z0 + Math.cos(h) * Math.sin(a) * 36, yaw: h + a, pitch: a, n: n, smoke: true };
+        }
+        const u = remap(t, 0.78, 1);
+        const x0 = Math.cos(h) * 125, z0 = Math.sin(h) * 70;
         return { x: lerp(x0, 0, u), y: altsIn[i], z: lerp(z0, 0, u), yaw: Math.atan2(-z0, -x0), n: n, smoke: true };
       });
     } });
-  add({ id: "breakout", name: "Delta Break Out / Head-On", ref: "2-42", tags: ["high", "low", "flat"], min: 300, max: 2900, kin: 330, kout: 300, dur: 9,
-    desc: "Delta head-on climb. Boss calls “Ready, Break!” Wings 45°; solos 60° AOB.",
-    call: function (t) { return t > 0.36 && t < 0.55 ? "READY, BREAK!" : ""; },
+  add({ id: "breakout", name: "Delta Break Out / Head-On", ref: "2-42", tags: ["high", "low", "flat"], min: 300, max: 2900, kin: 330, kout: 300, dur: 12,
+    desc: "Manual diagram, crowd view left→right: 6, 2, 1 & 4, 3, 5. Head-on to CP, then peel outboard — 6/2 left, 1&4 straight, 3/5 right. Nobody crosses.",
+    call: function (t) { return t > 0.34 && t < 0.5 ? "READY, BREAK!" : ""; },
     jets: function (t) {
-      if (t < 0.38) return formJets({ x: 0, y: 30 + remap(t, 0, 0.38) * 28, z: lerp(120, 20, remap(t, 0, 0.38)), yaw: -Math.PI / 2, pitch: 0.28 }, "delta", [1, 2, 3, 4, 5, 6]);
+      const uIn = Math.min(1, remap(t, 0, 0.38));
+      const y0 = 28 + uIn * 22;
+      const z0 = lerp(-58, 10, uIn);
+      const yaw0 = Math.PI / 2;
+      const pitch0 = 0.2;
+      const inbound = [
+        { n: 1, x: 0, zOff: 10 },
+        { n: 2, x: -34, zOff: -4 },
+        { n: 3, x: 34, zOff: -4 },
+        { n: 4, x: 0, zOff: -18 },
+        { n: 5, x: 60, zOff: -8 },
+        { n: 6, x: -60, zOff: -8 }
+      ].map(function (s) {
+        return { x: s.x, y: y0, z: z0 + s.zOff, yaw: yaw0, pitch: pitch0, roll: 0, n: s.n, smoke: true };
+      });
+      if (t < 0.38) return inbound;
       const u = remap(t, 0.38, 1);
-      return [{ x: 0, z: -1, p: 0.55, n: 1 }, { x: 0.75, z: -0.4, p: 0.3, n: 2 }, { x: -0.75, z: -0.4, p: 0.3, n: 3 }, { x: 0, z: -0.85, p: 0.45, n: 4 }, { x: 1.1, z: 0.15, p: 0.2, n: 5 }, { x: -1.1, z: 0.15, p: 0.2, n: 6 }].map(function (s) {
-        return { x: s.x * u * 150, y: 58 + u * 36, z: 20 + s.z * u * 140, yaw: Math.atan2(s.z, s.x || 0.001), pitch: s.p, roll: s.x * 0.6, n: s.n, smoke: true, burner: 1 };
+      const peel = [
+        { x: 0, y: 1.2, z: 0.8, yaw: 0, pitch: 0.95, roll: 0 },
+        { x: -0.9, y: 0.72, z: 0.5, yaw: 0.75, pitch: 0.45, roll: 0.78 },
+        { x: 0.9, y: 0.72, z: 0.5, yaw: -0.75, pitch: 0.45, roll: -0.78 },
+        { x: 0, y: 1.05, z: 0.75, yaw: 0, pitch: 0.82, roll: 0 },
+        { x: 1.3, y: 0.42, z: 0.12, yaw: -1.25, pitch: 0.22, roll: -1.05 },
+        { x: -1.3, y: 0.42, z: 0.12, yaw: 1.25, pitch: 0.22, roll: 1.05 }
+      ];
+      return inbound.map(function (j, i) {
+        const p = peel[i];
+        return {
+          x: j.x + p.x * u * 180,
+          y: j.y + p.y * u * 155,
+          z: j.z + p.z * u * 105,
+          yaw: yaw0 + p.yaw * u,
+          pitch: lerp(pitch0, p.pitch, u),
+          roll: p.roll * Math.min(1, u / 0.22),
+          n: j.n,
+          smoke: true,
+          burner: 1
+        };
       });
     } });
   add({ id: "flat-pass", name: "Diamond Flat Pass", ref: "3-2", tags: ["flat"], min: 200, max: 200, kin: 335, kout: 335, dur: 7,
     desc: "Diamond flat pass at 200′ AGL on the 500′ show line.",
-    jets: function (t) { return formJets(showLinePass(t, { from: 210, to: -210, y: 22, z: -12 }), "diamond", [1, 2, 3, 4]); } });
+    jets: function (t) { return formJets(showLinePass(t, { from: 170, to: -170, y: 22, z: -12 }), "diamond", [1, 2, 3, 4]); } });
   add({ id: "ech-flat", name: "Left Echelon Flat Pass", ref: "3-3", tags: ["flat"], min: 300, max: 500, kin: 335, kout: 335, dur: 9,
     desc: "Left echelon flat pass, back to Diamond ~1 NM in front of the crowd.",
-    jets: function (t) { const lead = showLinePass(t, { from: -200, to: 180, y: 30, z: 22 }); lead.yaw = 0; return formJets(lead, t < 0.62 ? "echelonL" : "diamond", [1, 2, 3, 4]); } });
+    jets: function (t) {
+      const lead = showLinePass(t, { from: -165, to: 155, y: 30, z: 18 }); lead.yaw = 0;
+      const blend = smoother01(remap(t, 0.52, 0.72));
+      const a = formJets(lead, "echelonL", [1, 2, 3, 4]);
+      if (blend <= 0) return a;
+      const b = formJets(lead, "diamond", [1, 2, 3, 4]);
+      if (blend >= 1) return b;
+      return a.map(function (ja, i) { return ja && b[i] ? mixPose(ja, b[i], blend) : (b[i] || ja); });
+    } });
   add({ id: "dirty-clean", name: "Dirty / Clean Flat Pass", ref: "3-5", tags: ["flat"], min: 200, max: 200, kin: 240, kout: 500, dur: 8,
     desc: "Diamond dirty down the show line while #6 overtakes clean.",
     jets: function (t) {
-      const lead = showLinePass(t, { from: 190, to: -190, y: 22, z: 0 }); lead.gear = 1;
+      const lead = showLinePass(t, { from: 165, to: -165, y: 22, z: 0 }); lead.gear = 1;
       const jets = formJets(lead, "diamond", [1, 2, 3, 4]);
-      jets[5] = { x: lerp(-40, 80, t), y: 22 + remap(t, 0.45, 1) * 40, z: -18, yaw: 0, n: 6, smoke: true, burner: 1 };
+      jets[5] = { x: lerp(-36, 70, t), y: 22 + remap(t, 0.45, 1) * 32, z: -16, yaw: 0, n: 6, smoke: true, burner: 1 };
       return jets;
     } });
   add({ id: "man-delta", name: "Maneuvering Delta", ref: "3-8", tags: ["low", "flat"], min: 200, max: 400, kin: 335, kout: 335, dur: 9,
@@ -740,8 +1089,8 @@
   add({ id: "delta-ail", name: "Delta Aileron Roll", ref: "3-9", tags: ["flat"], min: 200, max: 500, kin: 400, kout: 400, dur: 7,
     desc: "All six perform simultaneous 360° rolls in the box.",
     jets: function (t) {
-      const lead = showLinePass(t, { from: 200, to: -200, y: 26, z: 8 });
-      lead.roll = t > 0.22 && t < 0.78 ? (t - 0.22) / 0.56 * Math.PI * 2 : 0;
+      const lead = showLinePass(t, { from: 170, to: -170, y: 26, z: 8 });
+      lead.roll = gatedRoll(t, 0.22, 0.78, 1, 1);
       return formJets(lead, "delta", [1, 2, 3, 4, 5, 6]);
     } });
   add({ id: "pitch-up", name: "Delta Pitch-Up Break", ref: "3-11", tags: ["high", "low", "flat"], min: 200, max: 800, kin: 420, kout: 0, dur: 10,
@@ -749,33 +1098,70 @@
     jets: function (t) {
       return [1, 2, 3, 4, 5, 6].map(function (n) {
         const delay = (n - 1) * 0.09; const u = remap(t, delay, delay + 0.55);
-        return { x: lerp(160, -40, clamp(t * 1.1 - delay * 0.3, 0, 1)) + u * 20, y: 22 + u * 28, z: -10 + u * 70, yaw: Math.PI + u * 1.4, pitch: u * 0.25, roll: u * 0.8, n: n, gear: u > 0.55 ? 1 : 0, smoke: u < 0.7 };
+        return { x: lerp(145, -32, clamp(t * 1.1 - delay * 0.3, 0, 1)) + u * 16, y: 22 + u * 24, z: -8 + u * 56, yaw: Math.PI + u * 1.4, pitch: u * 0.25, roll: u * 0.8, n: n, gear: u > 0.55 ? 1 : 0, smoke: u < 0.7 };
       });
     } });
   add({ id: "fat-albert", name: "C-130 Assault Landing", ref: "2-7", tags: ["c130"], min: 0, max: 1200, kin: 135, kout: 0, dur: 10,
     desc: "20–25° nose-down assault approach. After landing, reverse, face the crowd, and exit.",
     jets: function (t) {
       let p;
-      if (t < 0.45) p = { x: lerp(-30, 20, remap(t, 0, 0.45)), y: 70 - remap(t, 0, 0.45) * 20, z: lerp(90, 10, remap(t, 0, 0.45)), yaw: -1.2, pitch: -0.15 };
-      else if (t < 0.82) { const u = remap(t, 0.45, 0.82); p = { x: lerp(20, 0, u), y: lerp(50, 3, u), z: lerp(10, 0, u), yaw: Math.PI, pitch: -0.4 }; }
-      else { const u = remap(t, 0.82, 1); p = { x: lerp(0, -20, u), y: 3, z: 0, yaw: Math.PI + u * 1.4, pitch: 0 }; }
+      if (t < 0.55) {
+        const u = remap(t, 0, 0.55);
+        p = { x: lerp(-8, 4, u), y: lerp(70, 28, u), z: lerp(90, 18, u), yaw: -1.15, pitch: -0.22 };
+      } else if (t < 0.82) {
+        const u = remap(t, 0.55, 0.82);
+        p = { x: lerp(4, 0, u), y: lerp(28, 3, u), z: lerp(18, 0, u), yaw: lerpAng(-1.15, Math.PI, u), pitch: lerp(-0.22, -0.42, u) };
+      } else {
+        const u = remap(t, 0.82, 1);
+        p = { x: lerp(0, -14, u), y: 3, z: 0, yaw: Math.PI + u * 1.45, pitch: lerp(-0.42, 0, u) };
+      }
       p.kind = "c130"; p.n = 0; p.gear = 1; p.smoke = false;
       return [p, null, null, null, null, null];
     } });
 
-  let idx = M.findIndex(function (m) { return m.id === "dirty-loop"; });
+  let idx = M.findIndex(function (m) { return m.id === "burner-go"; });
   if (idx < 0) idx = 0;
   let view = "spectator", playing = true, speed = 1, t = 0, last = performance.now(), filter = "all", hover = -1;
+  let coasting = false, coastT = 0;
+  let coastState = [null, null, null, null, null, null];
   const trails = [[], [], [], [], [], [], []];
+  const jetSoft = [null, null, null, null, null, null];
+  const cam = { x: 0, y: 14, z: 0, zoom: 0.95, tx: 0, ty: 14, tz: 0, tzoom: 0.95 };
   const TAGS = [["all", "All"], ["high", "High"], ["low", "Low"], ["flat", "Flat"], ["solo", "Solos"], ["formation", "Formations"], ["c130", "C-130"]];
+
+  function resizeStage() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const nextW = Math.max(960, Math.round((rect.width || 1600) * dpr));
+    const nextH = Math.max(540, Math.round((rect.height || 900) * dpr));
+    if (canvas.width !== nextW || canvas.height !== nextH) {
+      canvas.width = nextW;
+      canvas.height = nextH;
+    }
+    W = canvas.width;
+    H = canvas.height;
+  }
+  window.addEventListener("resize", resizeStage);
+  if (window.ResizeObserver) {
+    new ResizeObserver(resizeStage).observe(canvas.parentElement || canvas);
+  }
 
   function filtered() {
     return M.map(function (m, i) { return { m: m, i: i }; }).filter(function (x) { return filter === "all" || x.m.tags.indexOf(filter) >= 0; });
   }
   function setManeuver(i, reset) {
     idx = (i + M.length) % M.length;
-    if (reset !== false) { t = 0; trails.forEach(function (tr) { tr.length = 0; }); }
+    if (reset !== false) {
+      t = 0;
+      coasting = false;
+      coastT = 0;
+      trails.forEach(function (tr) { tr.length = 0; });
+      for (let s = 0; s < jetSoft.length; s++) jetSoft[s] = null;
+    }
     const m = M[idx];
+    const raw = m.jets(clamp(t, 0, 0.999));
+    for (let s = 0; s < jetSoft.length; s++) jetSoft[s] = raw[s] || null;
+    aimCamera(raw, 1, m, true);
     mTitle.textContent = m.name; mRef.textContent = "MANUAL " + m.ref;
     mMeta.textContent = m.min + "–" + m.max + "′ AGL · " + m.kin + "→" + m.kout + " KCAS";
     mDesc.innerHTML = "<strong>What the manual says.</strong> " + m.desc;
@@ -797,7 +1183,13 @@
   document.getElementById("playBtn").onclick = function () { playing = !playing; this.textContent = playing ? "Pause" : "Play"; };
   document.getElementById("prevBtn").onclick = function () { setManeuver(idx - 1); };
   document.getElementById("nextBtn").onclick = function () { setManeuver(idx + 1); };
-  document.getElementById("replayBtn").onclick = function () { t = 0; trails.forEach(function (tr) { tr.length = 0; }); };
+  document.getElementById("replayBtn").onclick = function () {
+    t = 0;
+    coasting = false;
+    coastT = 0;
+    trails.forEach(function (tr) { tr.length = 0; });
+    for (let s = 0; s < jetSoft.length; s++) jetSoft[s] = null;
+  };
   document.getElementById("spd").oninput = function (e) { speed = Number(e.target.value); };
   document.querySelectorAll("[data-view]").forEach(function (b) {
     b.onclick = function () { view = b.dataset.view; document.querySelectorAll("[data-view]").forEach(function (x) { x.classList.toggle("active", x === b); }); };
@@ -822,15 +1214,88 @@
   });
   canvas.addEventListener("mouseleave", function () { hover = -1; });
 
-  function project(x, y, z) {
-    if (view === "overhead") return { sx: W / 2 + x * 2.15, sy: H * 0.48 + z * 1.95, depth: 200 - y };
-    if (view === "profile") return { sx: W / 2 + x * 2.2, sy: H * 0.80 - y * 2.35, depth: 80 - z };
-    const camZ = 220, camY = 18, zz = camZ - z, sc = 720 / Math.max(48, zz);
-    return { sx: W / 2 + x * sc, sy: H * 0.73 - (y - camY) * sc * 0.95 - z * 0.05, depth: zz };
+  function projectWith(x, y, z, c) {
+    if (!isFinite(x) || !isFinite(y) || !isFinite(z) || !c || !isFinite(c.zoom)) {
+      return { sx: W / 2, sy: H / 2, depth: 120 };
+    }
+    const zx = x - (c.x || 0);
+    const zy = y - (c.y || 0);
+    const zz = z - (c.z || 0);
+    const fit = Math.min(W / 1600, H / 900) || 1;
+    const zm = c.zoom || 1;
+    if (view === "overhead") {
+      const k = 2.35 * fit * zm;
+      return { sx: W / 2 + zx * k, sy: H * 0.52 + zz * k * 0.9, depth: 220 - y };
+    }
+    if (view === "profile") {
+      const kx = 2.45 * fit * zm;
+      const ky = 1.55 * fit * zm;
+      return { sx: W / 2 + zx * kx, sy: H * 0.82 - zy * ky, depth: 90 - z };
+    }
+    const depth = Math.max(80, 250 - zz);
+    const scX = (3.35 * fit * zm) * (220 / depth);
+    const scY = (2.72 * fit * zm) * (220 / depth);
+    const sx = W / 2 + zx * scX;
+    const sy = H * 0.84 - zy * scY - zz * 0.035;
+    if (!isFinite(sx) || !isFinite(sy)) return { sx: W / 2, sy: H / 2, depth: 120 };
+    return { sx: sx, sy: sy, depth: depth };
+  }
+  function project(x, y, z) { return projectWith(x, y, z, cam); }
+
+  function aimCamera(jets, dt, m, snap) {
+    // Crowd view, camera planted on the ground so loops occupy the sky.
+    cam.tx = 0; cam.ty = 14; cam.tz = 0; cam.tzoom = 0.95;
+    if (snap) {
+      cam.x = cam.tx; cam.y = cam.ty; cam.z = cam.tz; cam.zoom = cam.tzoom;
+      return;
+    }
+    const k = expFollow(dt, 3.2);
+    cam.x += (cam.tx - cam.x) * k;
+    cam.y += (cam.ty - cam.y) * k;
+    cam.z += (cam.tz - cam.z) * k;
+    cam.zoom += (cam.tzoom - cam.zoom) * k;
+  }
+
+  function blendJet(prev, next, dt) {
+    if (!next) return null;
+    if (!prev) {
+      return {
+        x: next.x, y: next.y, z: next.z,
+        yaw: next.yaw || 0, pitch: next.pitch || 0, roll: next.roll || 0,
+        gear: next.gear || 0, burner: next.burner || 0, smoke: next.smoke,
+        kind: next.kind, n: next.n
+      };
+    }
+    const k = expFollow(dt, 32);
+    const pa = basis(prev.yaw || 0, prev.pitch || 0, prev.roll || 0);
+    const pb = basis(next.yaw || 0, next.pitch || 0, next.roll || 0);
+    const align = pa.fwd.x * pb.fwd.x + pa.fwd.y * pb.fwd.y + pa.fwd.z * pb.fwd.z;
+    const rk = align > 0.82 ? 1 : expFollow(dt, 22);
+    return {
+      x: prev.x + (next.x - prev.x) * k,
+      y: prev.y + (next.y - prev.y) * k,
+      z: prev.z + (next.z - prev.z) * k,
+      yaw: lerpAng(prev.yaw || 0, next.yaw || 0, rk),
+      pitch: lerpAng(prev.pitch || 0, next.pitch || 0, rk),
+      roll: lerpAng(prev.roll || 0, next.roll || 0, rk),
+      gear: next.gear, burner: next.burner, smoke: next.smoke,
+      kind: next.kind, n: next.n
+    };
+  }
+
+  function smoothJets(raw, dt) {
+    const out = [null, null, null, null, null, null];
+    for (let i = 0; i < 6; i++) {
+      jetSoft[i] = blendJet(jetSoft[i], raw[i] || null, dt);
+      out[i] = jetSoft[i];
+    }
+    return out;
   }
 
   function rotateP(p, yaw, pitch, roll) {
     let x = p[0], y = p[1], z = p[2];
+    yaw = yaw || 0; pitch = pitch || 0; roll = roll || 0;
+    if (!isFinite(yaw) || !isFinite(pitch) || !isFinite(roll)) { yaw = 0; pitch = 0; roll = 0; }
     const cr = Math.cos(roll), sr = Math.sin(roll);
     let y1 = y * cr - z * sr, z1 = y * sr + z * cr; y = y1; z = z1;
     const cp = Math.cos(pitch), sp = Math.sin(pitch);
@@ -977,10 +1442,11 @@
       ctx.strokeStyle = WHT; ctx.lineWidth = 2;
       const pts = [[2.6, -0.35, 0], [-0.4, -0.4, 1.15], [-0.4, -0.4, -1.15]];
       pts.forEach(function (v) {
-        const a = rotateP([v[0], 0.1, v[2]], j.yaw, j.pitch, j.roll);
-        const b = rotateP([v[0], v[1] - 1.5, v[2]], j.yaw, j.pitch, j.roll);
+        const a = rotateP([v[0], 0.1, v[2]], j.yaw || 0, j.pitch || 0, j.roll || 0);
+        const b = rotateP([v[0], v[1] - 1.5, v[2]], j.yaw || 0, j.pitch || 0, j.roll || 0);
         const p0 = project(j.x + a.x * size, j.y + a.y * size, j.z + a.z * size);
         const p1 = project(j.x + b.x * size, j.y + b.y * size, j.z + b.z * size);
+        if (!isFinite(p0.sx) || !isFinite(p1.sx)) return;
         ctx.beginPath(); ctx.moveTo(p0.sx, p0.sy); ctx.lineTo(p1.sx, p1.sy); ctx.stroke();
         ctx.fillStyle = WHT; ctx.beginPath(); ctx.arc(p1.sx, p1.sy, 2.4, 0, Math.PI * 2); ctx.fill();
       });
@@ -993,8 +1459,9 @@
 
     if (j.burner) {
       [0.5, -0.5].forEach(function (side) {
-        const r = rotateP([-5.55, 0.05, side], j.yaw, j.pitch, j.roll);
+        const r = rotateP([-5.55, 0.05, side], j.yaw || 0, j.pitch || 0, j.roll || 0);
         const tail = project(j.x + r.x * size, j.y + r.y * size, j.z + r.z * size);
+        if (!isFinite(tail.sx) || !isFinite(tail.sy)) return;
         const g = ctx.createRadialGradient(tail.sx, tail.sy, 0, tail.sx, tail.sy, 22);
         g.addColorStop(0, "#fff6c8"); g.addColorStop(0.35, "#ff8a2b"); g.addColorStop(1, "rgba(255,80,0,0)");
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tail.sx, tail.sy, 22, 0, Math.PI * 2); ctx.fill();
@@ -1028,21 +1495,117 @@
   }
   function drawTrail(tr) {
     if (tr.length < 2) return;
+    const pts = tr.map(function (p) { return project(p.x, p.y, p.z); });
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
-    tr.forEach(function (p, i) { const q = project(p.x, p.y, p.z); if (i === 0) ctx.moveTo(q.sx, q.sy); else ctx.lineTo(q.sx, q.sy); });
-    ctx.strokeStyle = "rgba(230,240,255,.28)"; ctx.lineWidth = 4.5; ctx.lineJoin = "round"; ctx.stroke();
-    ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.moveTo(pts[0].sx, pts[0].sy);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i].sx + pts[i + 1].sx) / 2;
+      const my = (pts[i].sy + pts[i + 1].sy) / 2;
+      ctx.quadraticCurveTo(pts[i].sx, pts[i].sy, mx, my);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last.sx, last.sy);
+    ctx.strokeStyle = "rgba(230,240,255,.22)"; ctx.lineWidth = 7; ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 2; ctx.stroke();
   }
-  function currentJets() { return M[idx].jets(clamp(t, 0, 0.999)); }
+  function currentJets() { return jetSoft.slice(); }
+
+  function sampleVel(m, i) {
+    const a = m.jets(0.97)[i];
+    const b = m.jets(0.999)[i];
+    if (!a || !b) return { x: 0, y: 0, z: 0 };
+    const dt = 0.029 * m.dur;
+    return { x: (b.x - a.x) / dt, y: (b.y - a.y) / dt, z: (b.z - a.z) / dt };
+  }
+
+  function beginCoast(m) {
+    const raw = m.jets(0.999);
+    coasting = true;
+    coastT = 0;
+    for (let i = 0; i < 6; i++) {
+      const j = raw[i];
+      if (!j) { coastState[i] = null; continue; }
+      let v = sampleVel(m, i);
+      let spd = Math.hypot(v.x, v.y, v.z);
+      const b = basis(j.yaw, j.pitch, j.roll);
+      if (!isFinite(spd) || spd < 12) {
+        spd = 70;
+        v = { x: b.fwd.x * spd, y: b.fwd.y * spd, z: b.fwd.z * spd };
+      } else if (spd < 40) {
+        const s = 55 / spd;
+        v = { x: v.x * s, y: v.y * s, z: v.z * s };
+      }
+      coastState[i] = {
+        x: j.x, y: j.y, z: j.z,
+        yaw: j.yaw || 0, pitch: j.pitch || 0, roll: j.roll || 0,
+        gear: j.gear, burner: j.burner, smoke: j.smoke, kind: j.kind, n: j.n,
+        vx: v.x, vy: v.y, vz: v.z
+      };
+    }
+  }
+
+  function stepCoast(dt) {
+    const out = [null, null, null, null, null, null];
+    for (let i = 0; i < 6; i++) {
+      const s = coastState[i];
+      if (!s) continue;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.z += s.vz * dt;
+      out[i] = s;
+    }
+    return out;
+  }
+
+  function allOffscreen(jets) {
+    let seen = false;
+    for (let i = 0; i < jets.length; i++) {
+      const j = jets[i];
+      if (!j) continue;
+      seen = true;
+      const p = project(j.x, j.y, j.z);
+      const pad = 110;
+      if (p.sx > -pad && p.sx < W + pad && p.sy > -pad && p.sy < H + pad) return false;
+    }
+    return true;
+  }
 
   function loop(now) {
+    resizeStage();
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const m = M[idx];
-    if (playing) { t += dt * speed / m.dur; if (t >= 1) { t = 0; trails.forEach(function (tr) { tr.length = 0; }); } }
-    const jets = m.jets(clamp(t, 0, 0.999));
+    if (playing && !coasting) {
+      t += dt * speed / m.dur;
+      if (t >= 1) beginCoast(m);
+    }
+    let jets;
+    if (coasting) {
+      if (playing) coastT += dt * speed;
+      jets = stepCoast(playing ? dt * speed : 0);
+      for (let s = 0; s < 6; s++) jetSoft[s] = jets[s];
+      if (playing && coastT > 0.4 && (allOffscreen(jets) || coastT > 3.2)) {
+        t = 0;
+        coasting = false;
+        coastT = 0;
+        trails.forEach(function (tr) { tr.length = 0; });
+        for (let s = 0; s < jetSoft.length; s++) jetSoft[s] = null;
+        jets = smoothJets(m.jets(0), 1);
+      }
+    } else {
+      const raw = m.jets(clamp(t, 0, 0.999));
+      jets = smoothJets(raw, dt);
+    }
+    aimCamera(jets, dt, m);
     jets.forEach(function (j, i) {
-      if (j && j.smoke !== false) { trails[i].push({ x: j.x, y: j.y, z: j.z }); if (trails[i].length > 90) trails[i].shift(); }
-      else trails[i].length = 0;
+      if (j && j.smoke !== false) {
+        const lastP = trails[i][trails[i].length - 1];
+        if (!lastP || Math.hypot(j.x - lastP.x, j.y - lastP.y, j.z - lastP.z) > 0.7) {
+          trails[i].push({ x: j.x, y: j.y, z: j.z });
+        }
+        if (trails[i].length > 140) trails[i].shift();
+      } else trails[i].length = 0;
     });
     ctx.clearRect(0, 0, W, H); drawSky(); drawBox(); trails.forEach(drawTrail);
     const drawList = jets.map(function (j, i) { return { j: j, i: i }; }).filter(function (x) { return x.j; });
@@ -1051,9 +1614,10 @@
       if (x.j.kind === "c130") drawMesh(x.j, HERK, C130_SIZE);
       else drawMesh(x.j, HORNET, JET_SIZE);
     });
-    const alt = Math.round(lerp(m.min, m.max, Math.sin(Math.PI * t)));
-    const kts = Math.round(lerp(m.kin, m.kout, t));
-    hud.innerHTML = "VIEW <b>" + view.toUpperCase() + "</b><br>T <b>" + (t * m.dur).toFixed(1) + "s</b> / " + m.dur + "s<br>ALT <b>" + alt + "′</b>  KCAS <b>" + kts + "</b>";
+    const shownT = coasting ? m.dur + coastT : Math.min(t, 1) * m.dur;
+    const alt = Math.round(lerp(m.min, m.max, Math.sin(Math.PI * Math.min(t, 1))));
+    const kts = Math.round(lerp(m.kin, m.kout, Math.min(t, 1)));
+    hud.innerHTML = "VIEW <b>" + view.toUpperCase() + "</b><br>T <b>" + shownT.toFixed(1) + "s</b> / " + m.dur + "s<br>ALT <b>" + alt + "′</b>  KCAS <b>" + kts + "</b>";
     const call = m.call ? m.call(t) : "";
     calloutEl.textContent = call; calloutEl.classList.toggle("on", !!call);
     if (hover >= 0 && ROLES[hover] && jets[hover]) {
@@ -1066,7 +1630,57 @@
     }
     requestAnimationFrame(loop);
   }
-  buildList(); setManeuver(idx, true); requestAnimationFrame(loop);
+  const params = new URLSearchParams(location.search);
+  if (params.get("capture") === "1") document.body.classList.add("capture-mode");
+  if (params.get("view")) view = params.get("view");
+  if (params.get("pause") === "1") playing = false;
+  const want = params.get("m");
+  if (want) {
+    const found = M.findIndex(function (m) { return m.id === want; });
+    if (found >= 0) idx = found;
+  }
+  if (params.get("t")) t = clamp(Number(params.get("t")) || 0, 0, 0.999);
+
+  window.__BA = {
+    M: M,
+    cam: cam,
+    project: project,
+    seek: function (id, time, v) {
+      if (id) {
+        const found = M.findIndex(function (m) { return m.id === id; });
+        if (found >= 0) idx = found;
+      }
+      playing = false;
+      t = clamp(time == null ? t : time, 0, 0.999);
+      coasting = false;
+      coastT = 0;
+      if (v) view = v;
+      trails.forEach(function (tr) { tr.length = 0; });
+      setManeuver(idx, false);
+      return { id: M[idx].id, t: t, view: view };
+    },
+    frame: function () {
+      last = performance.now();
+      const m = M[idx];
+      const raw = m.jets(clamp(t, 0, 0.999));
+      for (let s = 0; s < 6; s++) jetSoft[s] = raw[s] || null;
+      aimCamera(raw, 1, m, true);
+      resizeStage();
+      ctx.clearRect(0, 0, W, H); drawSky(); drawBox();
+      const jets = raw;
+      const drawList = jets.map(function (j, i) { return { j: j, i: i }; }).filter(function (x) { return x.j; });
+      drawList.sort(function (a, b) { return project(b.j.x, b.j.y, b.j.z).depth - project(a.j.x, a.j.y, a.j.z).depth; });
+      drawList.forEach(function (x) {
+        if (x.j.kind === "c130") drawMesh(x.j, HERK, C130_SIZE);
+        else drawMesh(x.j, HORNET, JET_SIZE);
+      });
+      return canvas.toDataURL("image/png");
+    }
+  };
+
+  buildList(); setManeuver(idx, false);
+  document.getElementById("playBtn").textContent = playing ? "Pause" : "Play";
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
