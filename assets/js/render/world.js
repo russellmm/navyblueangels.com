@@ -2,6 +2,7 @@
 // World frame matches the sim: +x crowd right, +y up, +z toward the crowd, CP at the origin.
 import * as THREE from 'three';
 import { canvasTexture, rng } from './geom.js';
+import { buildCrowd } from './crowd.js';
 
 const NM = 6076.12;
 export const CROWD_Z = 1500;
@@ -127,11 +128,6 @@ function cloudTexture(seed) {
     b.addColorStop(0, 'rgba(255,255,255,0)'); b.addColorStop(1, 'rgba(205,212,226,0.45)');
     ctx.fillStyle = b; ctx.fillRect(0, 0, w, h);
   });
-}
-
-function personColor(r) {
-  const shirts = [0xffffff, 0x1d3f8f, 0xd9343b, 0xf2c230, 0x2e7d4f, 0x111111, 0x7fa7d9, 0xe9824b, 0x8d5aa8, 0xbfbfbf, 0x0b2a66];
-  return shirts[Math.floor(r() * shirts.length)];
 }
 
 export function createWorld(renderer, o = {}) {
@@ -273,26 +269,19 @@ export function createWorld(renderer, o = {}) {
     }
   }
   trees.count = ti;
+  const treeCount = ti;
   scene.add(trees);
 
   // --- spectators along the crowd line ---
   const crowd = new THREE.Group();
-  const bodyGeo = new THREE.CylinderGeometry(0.75, 0.6, 3.4, 6); bodyGeo.translate(0, 2.3, 0);
-  const headGeo = new THREE.SphereGeometry(0.42, 6, 5); headGeo.translate(0, 4.4, 0);
-  const N = 5200;
-  const bodies = new THREE.InstancedMesh(bodyGeo, new THREE.MeshStandardMaterial({ roughness: 0.9 }), N);
-  const heads = new THREE.InstancedMesh(headGeo, new THREE.MeshStandardMaterial({ color: 0xc89a78, roughness: 0.8 }), N);
-  const col = new THREE.Color();
-  for (let i = 0; i < N; i++) {
-    let x, z;
-    do { x = (r() - 0.5) * 3600; z = CROWD_Z + 35 + Math.pow(r(), 0.7) * 520; } while (Math.abs(x) < 26 && z < CROWD_Z + 90);
-    const sc = 0.8 + r() * 0.35;
-    m4.compose(p3.set(x, 0, z), q.identity(), s3.set(sc, sc, sc));
-    bodies.setMatrixAt(i, m4); heads.setMatrixAt(i, m4);
-    bodies.setColorAt(i, col.setHex(personColor(r)));
-    heads.setColorAt(i, col.setHex([0xc89a78, 0x8d5f43, 0xe5bfa0, 0x5b3a29, 0xf0d0b0][Math.floor(r() * 5)]));
-  }
-  crowd.add(bodies, heads);
+  // spectators: Blender-built figures, loaded asynchronously (the scene renders while they load)
+  const people = buildCrowd(crowd, {
+    url: o.crowdUrl ?? 'assets/models/spectators.bin',
+    // detailed models only for the closest few hundred; performance mode thins the crowd
+    count: o.crowdCount ?? 9000, nearCount: 400,
+    width: 3600, depth: 420, crowdZ: CROWD_Z, camera: { x: 0, z: CROWD_Z + 30 },
+    narrator: { x: 34, z: CROWD_Z - 12 }
+  });
   // tents / chalets behind the crowd
   const tentMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.8 });
   for (let i = 0; i < 26; i++) {
@@ -336,5 +325,10 @@ export function createWorld(renderer, o = {}) {
   box.visible = false;
   scene.add(box);
 
-  return { scene, sky, sun: sun.clone(), sunLight, box, clouds, crowd, fogColor };
+  // 'high' or 'low' (performance): fewer trees and spectators
+  const setDetail = (level) => {
+    trees.count = level === 'low' ? Math.round(treeCount * 0.4) : treeCount;
+    people.setDetail(level);
+  };
+  return { scene, sky, sun: sun.clone(), sunLight, box, clouds, crowd, people, fogColor, setDetail };
 }

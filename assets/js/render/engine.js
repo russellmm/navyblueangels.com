@@ -7,6 +7,7 @@ import { createC130 } from './c130.js';
 import { Smoke } from './smoke.js';
 import { buildManeuver } from '../sim/maneuvers.js';
 import { KT, GROUND_Y } from '../sim/flight.js';
+import { storedQuality, resolveQuality } from './quality.js';
 
 const DEG = Math.PI / 180;
 export const CAMERAS = {
@@ -45,6 +46,10 @@ export class Theater {
     this.camera = new THREE.PerspectiveCamera(30, 16 / 9, 2, 600000);
     this.camera.position.set(0, 6, CROWD_Z + 60);
     this.smoke = new Smoke(this.scene);
+    this.maxPixelRatio = o.maxPixelRatio ?? 1.75;
+    this.qualityPref = o.quality ?? storedQuality();
+    this.setQuality(resolveQuality(this.qualityPref, renderer));
+    this.perf = { time: 0, frames: 0, slow: 0 };
 
     this.jets = new Map();            // id -> { model, track }
     this.pathGroup = new THREE.Group(); this.scene.add(this.pathGroup);
@@ -77,7 +82,23 @@ export class Theater {
   }
 
   on(name, fn) { (this.listeners[name] ||= []).push(fn); return this; }
-  emit(name, ...a) { for (const fn of this.listeners[name] ?? []) fn(...a); }
+  emit(name, ...a) { for (const fn of this.listeners?.[name] ?? []) fn(...a); }
+
+  // 'high': full detail at up to 1.75x pixel density. 'low': 1x pixels, fewer spectators and trees, lighter smoke.
+  setQuality(level) {
+    this.quality = level;
+    this.renderer.setPixelRatio(level === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, this.maxPixelRatio));
+    this.world.setDetail(level);
+    this.smoke.setDetail(level);
+    if (this.container) this.resize();
+    this.emit('quality', level);
+  }
+  // pref: 'auto' | 'high' | 'low'
+  setQualityPref(pref) {
+    this.qualityPref = pref;
+    this.perf = { time: 0, frames: 0, slow: 0 };
+    this.setQuality(resolveQuality(pref, this.renderer));
+  }
 
   resize() {
     const w = this.container.clientWidth || 800, h = this.container.clientHeight || 450;
@@ -332,7 +353,20 @@ export class Theater {
     for (const [, j] of this.jets) if (j.track) smokers.push({ track: j.track, tail: j.model.tail, smokes: j.model.kind === 'hornet' });
     this.smoke.update(this.t, smokers);
     this.renderer.render(this.scene, this.camera);
+    this.watchPerformance(dtReal);
     this.emit('frame', this.t);
+  }
+
+  // In auto mode, drop to performance if the frame rate stays below ~35 fps for a few seconds.
+  watchPerformance(dt) {
+    if (this.qualityPref !== 'auto' || this.quality === 'low' || dt <= 0 || dt >= 0.1) return;
+    const p = this.perf;
+    p.time += dt; p.frames++;
+    if (p.time < 4) return;
+    const fps = p.frames / p.time;
+    p.time = 0; p.frames = 0;
+    p.slow = fps < 35 ? p.slow + 1 : 0;
+    if (p.slow >= 2) { this.setQuality('low'); this.emit('quality-lowered', fps); }
   }
 
   snapshot(type = 'image/jpeg', q = 0.9) {

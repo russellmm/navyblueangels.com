@@ -4,10 +4,12 @@
 import * as THREE from 'three';
 import { canvasTexture, rng } from './geom.js';
 
-const LIFE = 16;            // seconds a puff lingers
 const FINE = 1 / 120;       // emission spacing for fresh smoke
-const COARSE_EVERY = 3;     // older smoke keeps every 3rd puff (1/40 s)
-const FINE_AGE = 0.9;
+// detail levels: how long puffs linger, how sparse older smoke gets, how long smoke stays fine
+const DETAIL = {
+  high: { life: 16, coarseEvery: 3, fineAge: 0.9 },
+  low: { life: 12, coarseEvery: 6, fineAge: 0.45 }
+};
 const WIND = new THREE.Vector3(7, 0.8, 2.5);   // ft/s drift
 
 function puffTexture() {
@@ -25,7 +27,10 @@ function puffTexture() {
 }
 
 export class Smoke {
+  setDetail(level) { this.detail = DETAIL[level] ?? DETAIL.high; }
+
   constructor(scene, maxPerJet = 900, jets = 7) {
+    this.detail = DETAIL.high;
     this.max = maxPerJet * jets;
     const geo = new THREE.InstancedBufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], 3));
@@ -90,6 +95,7 @@ export class Smoke {
   // jets: [{ track, tail: Vector3 (body coords), visible }]
   update(t, jets) {
     const C = this.center.array, D = this.data.array;
+    const { life: LIFE, coarseEvery: COARSE_EVERY, fineAge: FINE_AGE } = this.detail;
     let n = 0;
     const iNow = Math.floor(t / FINE);
     for (const j of jets) {
@@ -125,7 +131,7 @@ export class Smoke {
         const size = 9 + 17 * Math.sqrt(age) + age * 2.2;
         const fadeIn = Math.min(1, age / 0.08);
         const fadeOut = 1 - THREE.MathUtils.smoothstep(age, LIFE * 0.45, LIFE);
-        const dens = age < FINE_AGE ? 0.55 : 0.9;     // coarse puffs carry the density of the ones skipped
+        const dens = age < FINE_AGE ? 0.55 : 0.3 * COARSE_EVERY;     // coarse puffs carry the density of the ones skipped
         D[n * 4] = fadeIn * fadeOut * dens * (1.25 / (1 + age * 0.1));
         D[n * 4 + 1] = seed;
         D[n * 4 + 2] = size;

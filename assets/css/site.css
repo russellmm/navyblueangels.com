@@ -486,3 +486,6 @@ section { position: relative; }
   width: 22px; height: 96px; margin: 0; accent-color: var(--accent); cursor: pointer;
 }
 .vol-pop span { font-size: 10px; font-variant-numeric: tabular-nums; opacity: .8; }
+
+/* quality toggle sits with the camera pills, visually set apart */
+.pill-q { border-style: dashed; }

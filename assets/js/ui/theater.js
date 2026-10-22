@@ -2,6 +2,7 @@
 import { MANEUVERS, SHOWS, PAGE, GROUPS } from '../sim/maneuvers.js';
 import { Theater, CAMERAS, webglAvailable } from '../render/engine.js';
 import { FlightAudio } from '../render/audio.js';
+import { saveQuality } from '../render/quality.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -136,10 +137,23 @@ function showCall(text, big) {
   callTimer = setTimeout(() => c.classList.remove('show'), big ? 2600 : 2200);
 }
 
+const Q_NEXT = { auto: 'high', high: 'low', low: 'auto' };
+function qualityLabel() {
+  if (!theater) return 'Quality';
+  const lvl = theater.quality === 'low' ? 'Lite' : 'HD';
+  return theater.qualityPref === 'auto' ? `Auto · ${lvl}` : lvl;
+}
 function renderCams() {
-  $('cams').innerHTML = Object.entries(CAMERAS).map(([k, l], i) => `<button class="pill" type="button" data-cam="${k}" aria-pressed="${theater?.mode === k}" title="${l} (${i + 1})">${l}</button>`).join('');
+  const q = theater ? `<button class="pill pill-q" type="button" data-quality title="Rendering quality: Auto picks for your device and drops to Lite if playback is slow. HD = full detail, Lite = faster (lower resolution, smaller crowd, lighter smoke).">${qualityLabel()}</button>` : '';
+  $('cams').innerHTML = Object.entries(CAMERAS).map(([k, l], i) => `<button class="pill" type="button" data-cam="${k}" aria-pressed="${theater?.mode === k}" title="${l} (${i + 1})">${l}</button>`).join('') + q;
 }
 $('cams').addEventListener('click', (e) => {
+  if (e.target.closest('[data-quality]') && theater) {
+    const next = Q_NEXT[theater.qualityPref] ?? 'auto';
+    theater.setQualityPref(next); saveQuality(next); renderCams();
+    showCall(next === 'auto' ? `Quality: auto (${theater.quality === 'low' ? 'Lite' : 'HD'})` : next === 'high' ? 'Quality: HD' : 'Quality: Lite');
+    return;
+  }
   const b = e.target.closest('[data-cam]'); if (!b || !theater) return;
   theater.setCamera(b.dataset.cam); renderCams(); syncUrl();
 });
@@ -224,6 +238,7 @@ function init() {
   theater.on('state', () => { setPlayIcon(); renderCams(); });
   theater.on('end', () => { if (state.auto) setTimeout(() => step(1), 1200); });
   theater.on('restart', () => showCall('Replay'));
+  theater.on('quality-lowered', () => { renderCams(); showCall('Switched to Lite quality for smoother playback'); });
   renderCams();
   select(first);
 }
