@@ -45,6 +45,27 @@ function detach(tracks, id, t, program) {
   return pl;
 }
 
+// Enter from behind the crowd at crowd right: run in toward the show line well clear of the
+// crowd's right end, then a left turn of radius r that rolls out heading crowd left on the line
+// z = zOn at about x = xOn. The turn's start is solved so the roll-out lands on that line.
+function inFromBehindRight(o) {
+  const zOn = o.zOn ?? 0;
+  const fly = (zTurn, deg = 90) => {
+    const p = new Pilot({ x: o.xOn + o.r, alt: o.alt, z: zTurn + 6000, dir: 'A', kts: o.kts });
+    if (o.gear) p.gear(true);
+    p.mark(o.label ?? 'In from behind the crowd, crowd right').until((q) => q.p[2] <= zTurn).turn(deg, { dir: 'L', r: o.r });
+    return p;
+  };
+  // the eased roll-in and roll-out leave the heading a little short of 90°; turn that much more
+  const probe = fly(o.r).d, deg = 90 - Math.atan2(probe[2], -probe[0]) / DEG;
+  return fly(solve((zt) => fly(zt, deg).p[2] - zOn, o.r + zOn, o.r + zOn - 300, 10), deg);
+}
+// z where a track first crosses x = 0 (1e4 if it never does)
+function crossZ(track) {
+  for (let i = 1; i < track.length; i++) if ((track.p[i * 3] <= 0) !== (track.p[(i - 1) * 3] <= 0)) return track.p[i * 3 + 2];
+  return 1e4;
+}
+
 // ---------- the catalog ----------
 export const MANEUVERS = [];
 const add = (m) => MANEUVERS.push(m);
@@ -84,17 +105,23 @@ add({
   id: 'c130-parade', ref: '2-3', name: 'C-130 Parade Pass', group: 'c130', ids: [7],
   data: { min: "200′", max: "1,000′", kin: '260', kout: '260' },
   text: 'The aircraft will complete the teardrop turn towards CP using the 30° ingress line. Once established on the 30° ingress line, a descent from 500’ AGL to 200’ AGL will be made. Abeam the crowd line, a roll into a 60° AOB turn towards will be performed. The turn will be continued to depart on the 30° egress line. Abeam the crowd line on the 30° egress line, wings will be leveled and a 10° nose-up climb will be initiated to 1200’ AGL.',
+  // In on the 30° ingress line from behind the crowd at crowd right (clear of the crowd's right
+  // end), descending to 200′. Abeam the end of the crowd a 60°-bank left turn bows toward the show
+  // line with its apex over CP, and the 30° egress line runs out behind the crowd at crowd left.
+  // The 60° turn's radius puts its ends abeam the ends of the crowd; its start is solved so the
+  // pass crosses CP.
   build() {
-    const din = dir30(-1, 1);              // inbound from in front, crowd right
-    const fly = (lead) => {
-      const p = new Pilot({ x: 15000, alt: 500, z: -8660, dir: din, kts: 260, smoke: false, ...C130 });
-      p.hold(200).until((q) => q.p[0] <= lead).mark('60° AOB turn').turn(60, { dir: 'R', bank: 60 });
+    const din = dir30(-1, -1);             // inbound toward crowd left and the show line
+    const x0 = 14000, z0 = 463 + (x0 - 1728) * Math.tan(30 * DEG);
+    const fly = (xTurn) => {
+      const p = new Pilot({ x: x0, alt: 500, z: z0, dir: din, kts: 260, smoke: false, ...C130 });
+      p.mark('30° ingress from behind the crowd').hold(200).untilX(xTurn).mark('60° AOB turn').turn(60, { dir: 'L', bank: 60 });
       return p;
     };
-    const lead = solve((x) => closestPass(fly(x).track, 0, 0).dist - 1, 2600, 3200, 10);
-    const p = fly(lead);
-    p.fly(9).hold(null).mark('10° climb').climbTo(1200, { gamma: 10, g: 1.2, energy: 0.2 }).fly(4);
-    return finish({ 7: p.track }, { kind: { 7: 'c130' }, events: eventsOf(p) });
+    const p = fly(solve((x) => crossZ(fly(x).track), 1700, 2000, 10));
+    p.hold(null).mark('Wings level — 10° climb on the egress line').climbTo(1200, { gamma: 10, g: 1.2, energy: 0.2 }).fly(6);
+    const c = closestPass(p.track, 0, 0);
+    return finish({ 7: p.track }, { kind: { 7: 'c130' }, events: [...eventsOf(p), evAt(c.t, 'Over CP at 200′')] });
   }
 });
 
@@ -102,11 +129,13 @@ add({
   id: 'c130-flat', ref: '2-4', name: 'C-130 Flat Pass', group: 'c130', ids: [7],
   data: { min: "40′", max: "1,000′", kin: '210', kout: '260' },
   text: 'The aircraft will make a teardrop turn back toward the show line to position itself on the 500’ line. Abeam CP at 50’ AGL, a climbing turn will be commenced away from the crowd to set up for the head on pass.',
+  // The diagram's teardrop is at crowd left, so the pass runs left to right and the climbing turn
+  // away from the crowd at CP leaves the C-130 at crowd right, set up for the head-on pass (2-5).
   build() {
-    const p = new Pilot({ x: 4000, alt: 1000, z: -6400, dir: 'R', kts: 210, smoke: false, ...C130 });
-    p.mark('Teardrop').hold(50).turn(180, { dir: 'R', r: 3200 });
+    const p = new Pilot({ x: -4000, alt: 1000, z: -6400, dir: 'L', kts: 210, smoke: false, ...C130 });
+    p.mark('Teardrop, crowd left').hold(50).turn(180, { dir: 'L', r: 3200 });
     p.speed(260, 2).hold(50).untilX(0).hold(null).mark('Climbing turn away');
-    p.pitchTo(8, { g: 1.3, energy: 0.2 }).turn(90, { dir: 'R', bank: 35 }).fly(6);
+    p.pitchTo(8, { g: 1.3, energy: 0.2 }).turn(90, { dir: 'L', bank: 35 }).fly(6);
     return finish({ 7: p.track }, { kind: { 7: 'c130' }, events: eventsOf(p) });
   }
 });
@@ -129,10 +158,16 @@ add({
   id: 'c130-remote-head', ref: '2-6', name: 'C-130 Remote Head-On Pass', group: 'c130', ids: [7],
   data: { min: "200′", max: "1,150′", kin: '210', kout: '260' },
   text: 'The aircraft will commence a turn to remain within 3nm of CP and roll out in a head-on profile towards CP at 200-500’ AGL. The aircraft will enter the aerobatic box at 100’ AGL. At ½ nm from CP, a 45° climb will be commenced to exit behind the crowd.',
+  // As in the diagram: from crowd right heading crowd right, a 270° left turn round the far side
+  // (staying inside 3 NM) rolls out head-on toward CP. Its start is solved so the roll-out is on CP.
   build() {
-    const p = new Pilot({ x: -11000, alt: 500, z: -15000, dir: 'R', kts: 210, smoke: false, ...C130 });
-    p.mark('Turn inside 3 NM').turnToward(CP, { dir: 'L', bank: 35 });
-    p.hold(100).until((q) => q.p[2] >= -NM / 2).hold(null).mark('45° climb');
+    const fly = (x0) => {
+      const p = new Pilot({ x: x0, alt: 500, z: -6000, dir: 'R', kts: 210, smoke: false, ...C130 });
+      p.mark('Turn inside 3 NM').turn(270, { dir: 'L', bank: 35 });
+      return p;
+    };
+    const p = fly(solve((x0) => fly(x0).p[0], 5500, 6000, 10));
+    p.mark('Head-on to CP').hold(100).until((q) => q.p[2] >= -NM / 2).hold(null).mark('45° climb');
     p.pitchTo(45, { g: 1.5, energy: 0.42 }).until((q) => q.alt > 1000, { energy: 0.42 }).pitchTo(0, { g: 0.5, energy: 0.2 }).fly(8);
     return finish({ 7: p.track }, { kind: { 7: 'c130' }, events: eventsOf(p) });
   }
@@ -427,10 +462,10 @@ add({
   text: 'Both aircraft will approach from crowd right in the dirty configuration. #5 will roll inverted at the edge of the aerobatic box at a minimum of 200’. #6 will move to an abeam position upright, creating a mirror image effect. At CP both aircraft will climb. At 3/4nm, #5 will roll upright and both aircraft will clear crowd left behind the crowd.',
   note: 'In a single solo situation, #5 or #6 will perform an inverted dirty flat pass, rolling in at 1NM and rolling upright at 3/4nm.',
   build() {
-    const ref = new Pilot({ x: 12500, alt: 220, z: 0, dir: 'L', kts: 275 });
-    ref.gear(true).mark('Lower landing gear').untilX(BOX);
+    const ref = inFromBehindRight({ xOn: 11000, r: 3900, alt: 300, kts: 275, gear: true, label: 'Lower landing gear behind the crowd' });
+    ref.hold(220).untilX(BOX);
     const tIn = ref.t;
-    ref.untilX(0).mark('Climb at CP').pitchTo(6, { g: 1.6 });
+    ref.untilX(0).hold(null).mark('Climb at CP').pitchTo(6, { g: 1.6 });
     ref.untilX(-0.75 * NM);
     const tUp = ref.t;
     ref.fly(2).mark('Clear crowd left behind the crowd').turn(90, { dir: 'L', bank: 55 });
@@ -494,7 +529,7 @@ add({
   data: { min: "200′", max: "400′", kin: '385', kout: '385' },
   text: '#1 & #4 roll inverted simultaneously at the edge of the aerobatic box while #2 & #3 remain upright. Maintaining a diamond formation they commence a flat pass at 200’. No later than 1NM past CP #1 & #4 sequentially roll upright in a climb.',
   build() {
-    const ref = new Pilot({ x: 13000, alt: 350, z: 0, dir: 'L', kts: 385 });
+    const ref = inFromBehindRight({ xOn: 12000, r: 7600, alt: 350, kts: 385 });
     ref.hold(210).untilX(BOX + 600);
     const tIn = ref.t;
     ref.untilX(-NM + 1500).hold(null).mark('Climb — roll upright').pitchTo(12, { g: 2.4 });
@@ -545,24 +580,18 @@ add({
   id: 'echelon-parade', ref: '2-25', name: 'Echelon Parade', group: 'diamond', ids: D4,
   data: { min: "200′", max: "800′", kin: '310', kout: '290' },
   text: 'In right Echelon the Diamond executes a right to left non-aerobatic circular pass at approximately 60° AOB crossing over CP at a minimum altitude of 200’.',
-  note: 'Flown here as the team flies it at most shows: the echelon enters from behind the crowd on the right, sweeps a half circle in front of the crowd from right to left banked toward the spectators, and exits behind the crowd on the left.',
+  note: 'Flown here as the team flies it at most shows: the echelon sets up behind the crowd, sweeps round the crowd\'s right end and a half circle in front of the crowd from right to left banked toward the spectators, and exits behind the crowd on the left.',
   build() {
-    // Right echelon enters from behind the crowd, crowd right, heading toward the show line, then flies a
-    // steady 60°-bank left turn: a half circle in front of the crowd, right to left, banked toward the
-    // spectators (tops of the jets toward the crowd, wingmen stepped up), over CP, exiting behind the crowd left.
+    // Same plan as the Diamond 360 (2-15), whose diagram it shares: the right echelon sets up behind the
+    // crowd flying left to right, then one steady 60°-bank left turn takes it round the crowd's right end,
+    // right to left over CP banked toward the spectators (tops of the jets toward the crowd, wingmen
+    // stepped up), and round to exit behind the crowd at crowd left. A left turn that crosses CP heading
+    // straight down the show line is centred behind CP at z = R; the roll-in starts a little early so
+    // the eased entry still brings the pass over CP.
     const R = 4400;                                   // ~60° of bank at 300 knots
-    const fly = (zTurn) => {
-      const p = new Pilot({ x: R, alt: 450, z: zTurn + 9000, dir: 'A', kts: 310 });
-      p.speed(290, 0.4).until((q) => q.p[2] <= zTurn).mark('Right echelon — 60° AOB circular pass').hold(220).turn(180, { dir: 'L', r: R });
-      return p;
-    };
-    // turn where the front of the half circle passes over CP
-    const crossZ = (zt) => {
-      const tr = fly(zt).track;
-      for (let i = 1; i < tr.length; i++) if (tr.p[i * 3] <= 0 && tr.p[(i - 1) * 3] > 0) return tr.p[i * 3 + 2];
-      return 1e4;
-    };
-    const ref = fly(solve(crossZ, R, R - 600, 10));
+    const ref = new Pilot({ x: -6000, alt: 450, z: 2 * R, dir: 'R', kts: 310 });
+    ref.speed(290, 0.4).mark('Setup behind the crowd').untilX(-500);
+    ref.mark('Right echelon — 60° AOB circular pass').hold(220).turn(270, { dir: 'L', r: R });
     ref.mark('Exit behind the crowd, crowd left').hold(400).fly(8);
     const tracks = formationTracks(ref.track, D4, [{ t: 0, form: 'echelonR' }]);
     const c = closestPass(ref.track, 0, 0);
@@ -649,13 +678,14 @@ add({
   data: { min: "200′", max: "8,400′", kin: '420', kout: '350' },
   text: 'At approximately 3-1/2NM, aircraft #1,2,3,4 and 5 transition to a Line Abreast formation. Approaching CP, they complete a loop. Egressing crowd left, aircraft #1-4 shift back to Diamond and detach #5.',
   build() {
-    const ref = new Pilot({ x: 13500, alt: 200, z: 0, dir: 'L', kts: 420 });
-    ref.untilX(-300).mark('Line abreast loop').pull(360, { r: 3750, energy: 0.42 });
+    const ref = inFromBehindRight({ xOn: 13500, r: 9000, alt: 300, kts: 420 });
+    const tOn = ref.t;
+    ref.mark('Line abreast').hold(200).untilX(-300).hold(null).mark('Line abreast loop').pull(360, { r: 3750, energy: 0.42 });
     ref.fly(3);
     const tDet = ref.t;
     ref.mark('Back to Diamond — detach #5').fly(12);
     const tracks = formationTracks(ref.track, [1, 2, 3, 4, 5],
-      [{ t: 0, form: 'lineAbreast' }, { t: tDet, form: 'delta', dur: 4 }]);
+      [{ t: 0, form: 'delta' }, { t: tOn, form: 'lineAbreast', dur: 4 }, { t: tDet, form: 'delta', dur: 4 }]);
     detach(tracks, 5, tDet + 1, (p) => p.pitchTo(8, { g: 3 }).turn(90, { dir: 'L', bank: 70 }));
     return finish(tracks, { events: eventsOf(ref) });
   }
@@ -752,7 +782,7 @@ add({
   build() {
     // Section flies as two independent aircraft so each rolls about its own axis.
     const mk = (z, alt) => {
-      const p = new Pilot({ x: 13000, alt, z, dir: 'L', kts: 400 });
+      const p = inFromBehindRight({ xOn: 13000, r: 8200, alt, kts: 400, zOn: z });
       p.untilX(1050).mark('Simultaneous left 450° rolls').roll(-450, { rate: 280 });
       p.mark('Clear behind the crowd').turn(110, { dir: 'L', bank: 78, rollRate: 120 }).pitchTo(10, { g: 3 }).fly(3);
       return p;
@@ -825,10 +855,21 @@ add({
   id: 'delta-roll', ref: '2-39', name: 'Delta Roll', group: 'delta', ids: [1, 2, 3, 4, 5, 6],
   data: { min: "200′", max: "4,300′", kin: '365', kout: '365' },
   text: 'From crowd right behind the crowd, all six aircraft will commence a climb approaching CP and roll 360° in formation at approximately 4000’ AGL. The egress will be crowd left in front of the crowd.',
+  // The diagram's setup: behind the crowd from crowd left at 2,000′, a descending left turn round the
+  // crowd's right end onto the diagonal that runs from behind the crowd at crowd right over CP. The turn's
+  // start is solved so the diagonal passes over CP.
   build() {
     const d = V.norm([-0.74, 0, -0.67]);
-    const ref = new Pilot({ x: 11000, alt: 200, z: 10000, dir: d, kts: 365 });
-    ref.until((q) => q.p[2] <= 5200).mark('Commence climb').pitchTo(26, { g: 2.4 });
+    const turnDeg = Math.atan2(-d[2], d[0]) / DEG;     // left turn from heading crowd right onto d
+    const fly = (xTurn) => {
+      const p = new Pilot({ x: -6000, alt: 2000, z: 19500, dir: 'R', kts: 330 });
+      p.mark('Setup behind the crowd, crowd left').untilX(xTurn).mark('Descending turn round crowd right')
+        .hold(200).turn(turnDeg, { dir: 'L', r: 5600 }).speed(365, 4);
+      return p;
+    };
+    const lineZ = (p) => p.p[2] - p.p[0] * (p.d[2] / p.d[0]);   // where the diagonal crosses x = 0
+    const ref = fly(solve((x) => lineZ(fly(x)), 4000, 5000, 10));
+    ref.until((q) => q.p[2] <= 5200).hold(null).speed(null).mark('Commence climb').pitchTo(26, { g: 2.4 });
     ref.until((q) => q.alt >= 3300).mark('360° roll at ≈ 4,000′').roll(-360, { rate: 52, pull: 3.2, energy: 0.5 });
     ref.pitchTo(-14, { g: 2.2 }).hold(200).mark('Egress crowd left in front').turnToward([-30000, 0, -4000], { bank: 40 }).fly(6);
     const tracks = formationTracks(ref.track, [1, 2, 3, 4, 5, 6], [{ t: 0, form: 'delta' }]);
