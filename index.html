@@ -1,57 +1,172 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="cinematic">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#061a3d">
-  <meta name="description" content="Explore the Blue Angels' 2026 flight demonstration maneuvers through an interactive, manual-referenced visual guide.">
-  <title>Blue Angels Maneuvers | An Interactive Flight Guide</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="app.js" defer></script>
+  <meta name="theme-color" content="#05080f">
+  <title>Blue Angels Maneuver Guide | 2026 Flight Demonstration in 3D</title>
+  <meta name="description" content="Watch every maneuver of the 2026 Blue Angels flight demonstration in realistic 3D, built from the official Maneuvers Manual.">
+  <script>try{var t=localStorage.getItem('ba-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <script type="importmap">{ "imports": { "three": "./assets/vendor/three/three.module.min.js" } }</script>
+  <script type="module" src="assets/js/ui/site.js"></script>
+  <script type="module" src="assets/js/ui/home.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#theater">Skip to maneuver explorer</a>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="Blue Angels Maneuvers home">
-      <svg class="brand-mark" viewBox="0 0 54 54" aria-hidden="true"><path d="M27 2 37 19 52 27 37 35 27 52 17 35 2 27 17 19Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M27 9v36M9 27h36M18 18l18 18m0-18L18 36" stroke="currentColor" stroke-width="1"/><circle cx="27" cy="27" r="4" fill="currentColor"/></svg>
-      <span><strong>BLUE ANGELS</strong><small>THE MANEUVER GUIDE</small></span>
-    </a>
-    <nav aria-label="Main navigation"><a href="#theater">Explore maneuvers</a><a href="#formations">Formations</a><a href="#show-types">Show profiles</a><a href="#sources">Sources</a></nav>
-    <a class="header-link" href="#theater">ENTER THE FLIGHT DECK <span aria-hidden="true">↗</span></a>
+    <div class="wrap">
+      <a class="brand" href="index.html" aria-label="Blue Angels Maneuver Guide home">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><g fill="currentColor"><path d="M20 3l3 7h-6z"/><path d="M11 13l3 7H8z"/><path d="M29 13l3 7h-6z"/><path d="M20 23l3 7h-6z"/></g><path d="M20 6v28M6 20h28" stroke="currentColor" stroke-width="1" opacity=".35"/></svg>
+        <span class="brand-name"><strong>BLUE ANGELS</strong><span>Maneuver Guide</span></span>
+      </a>
+      <nav class="nav" id="site-nav" aria-label="Main">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="maneuvers.html">Maneuvers</a>
+        <a href="show.html">The Show</a>
+        <a href="gallery.html">Galleries</a>
+      </nav>
+      <div class="header-tools">
+        <button class="theme-toggle" type="button" data-theme-toggle><span class="theme-swatch" aria-hidden="true"></span><span class="theme-label">Cinematic</span></button>
+        <button class="menu-btn" type="button" data-menu aria-controls="site-nav" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </div>
+    </div>
   </header>
-  <main id="top">
+
+  <main id="main">
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-grid" aria-hidden="true"></div>
-      <div class="hero-copy">
-        <p class="eyebrow"><span class="eyebrow-line"></span> U.S. NAVY FLIGHT DEMONSTRATION SQUADRON <span class="hero-year">/ 2026</span></p>
-        <h1 id="hero-title">Precision<br><em>in motion.</em></h1>
-        <p class="hero-intro">Every pass has a purpose. Explore the formations, flight paths, and split-second changes that shape a Blue Angels demonstration.</p>
-        <div class="hero-actions"><a class="primary-action" href="#theater">EXPLORE THE MANEUVERS <span aria-hidden="true">↗</span></a><a class="secondary-action" href="#show-types">HOW THE SHOW WORKS <span aria-hidden="true">↓</span></a></div>
-        <p class="hero-caption">Built from the <a href="maneuvers-manual.pdf" target="_blank" rel="noopener">2026 Maneuvers Manual</a> · Independent educational visualization</p>
-      </div>
-      <div class="hero-art" role="img" aria-label="Stylized six-aircraft delta formation">
-        <div class="hero-art-halo"></div>
-        <svg viewBox="0 0 760 700" aria-hidden="true"><defs><linearGradient id="jetGold" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fff5c5"/><stop offset=".4" stop-color="#f3c74a"/><stop offset="1" stop-color="#b98018"/></linearGradient><linearGradient id="smoke" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#eaf5ff" stop-opacity=".88"/><stop offset="1" stop-color="#d6eafa" stop-opacity="0"/></linearGradient><g id="aircraft"><path d="M0-46 6-22 8-5 48 11 49 22 9 17 8 38 17 47 17 53 0 49-17 53-17 47-8 38-9 17-49 22-48 11-8-5-6-22Z" fill="#123b85" stroke="url(#jetGold)" stroke-width="3"/><path d="M0-43V42M-38 16H38" stroke="#f7d157" stroke-width="2" opacity=".8"/><path d="M-7-10H7L10 11H-10Z" fill="#a8d5ea" opacity=".75"/></g></defs><g fill="none" stroke="url(#smoke)" stroke-linecap="round" opacity=".58"><path d="M380 92 C360 180 355 310 330 660" stroke-width="8"/><path d="M248 222 C225 370 220 520 198 687" stroke-width="7"/><path d="M512 222 C540 360 550 510 576 690" stroke-width="7"/><path d="M380 339 C385 465 380 590 370 699" stroke-width="7"/><path d="M160 386 C125 485 110 570 88 695" stroke-width="6"/><path d="M600 386 C638 500 649 595 678 698" stroke-width="6"/></g><g opacity=".4" stroke="#b8d8fa" stroke-width="1" fill="none"><circle cx="380" cy="338" r="302"/><circle cx="380" cy="338" r="225"/><path d="M44 338h672M380 19v638"/></g><g filter="drop-shadow(0 14px 9px #00112b)"><use href="#aircraft" x="380" y="92"/><use href="#aircraft" x="248" y="222"/><use href="#aircraft" x="512" y="222"/><use href="#aircraft" x="380" y="339"/><use href="#aircraft" x="160" y="386"/><use href="#aircraft" x="600" y="386"/></g><g fill="#f8d76d" font-family="Arial,sans-serif" font-size="17" font-weight="700" text-anchor="middle"><text x="380" y="28">01</text><text x="248" y="160">02</text><text x="512" y="160">03</text><text x="380" y="276">04</text><text x="160" y="324">05</text><text x="600" y="324">06</text></g></svg>
-        <div class="art-coordinate top">DELTA / SIX AIRCRAFT</div><div class="art-coordinate bottom">FORMATION STUDY · NOT TO SCALE</div>
-      </div>
-      <div class="hero-bottom"><span>SCROLL TO EXPLORE</span><span>01 / FLIGHT DEMONSTRATION</span></div>
-    </section>
-    <section class="intro-band" aria-label="Guide overview"><div><strong>01</strong><span>OFFICIAL MANUAL<br>AS PRIMARY SOURCE</span></div><div><strong>03</strong><span>SHOW PROFILES<br>HIGH · LOW · FLAT</span></div><div><strong>06</strong><span>AIRCRAFT IN THE<br>DELTA FORMATION</span></div><p>Explore from the spectator line, side profile, or overhead. Select a maneuver to see the manual’s stated altitude and speed envelope alongside an illustrative flight path.</p></section>
-    <section class="section-shell explorer-section" id="theater" aria-labelledby="explorer-title">
-      <div class="section-heading"><div><p class="section-kicker">01 / INTERACTIVE EXPLORER</p><h2 id="explorer-title">The maneuver<br><em>theater.</em></h2></div><p>Choose a show profile, select a maneuver, and change your viewpoint. The paths are interpretive diagrams; the facts and descriptions are grounded in the 2026 manual.</p></div>
-      <div class="theater">
-        <div class="theater-top"><div class="theater-heading"><span class="tiny-label" id="mRef">MANUAL 2-10b</span><h3 id="mTitle">Diamond Burner Go / Loop on Takeoff</h3></div><div class="theater-meta"><span id="formationBadge">FLIGHT PATH</span><span id="mMeta">0–9,400 ft AGL · 0→380 knots</span></div></div>
-        <div class="maneuver-dock">
-          <aside class="catalog" aria-label="Maneuver catalog"><div class="catalog-head"><span class="tiny-label">FLIGHT INDEX</span><span id="resultCount">MANEUVERS</span></div><label class="search-wrap"><span class="sr-only">Search maneuvers</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.7"/><path d="m16 16 5 5"/></svg><input id="mSearch" type="search" placeholder="Search maneuvers..." autocomplete="off"></label><div class="filters" id="filters" aria-label="Filter maneuvers"></div><div class="maneuver-list" id="mList" aria-label="Maneuvers"></div></aside>
-          <div class="viewer"><div class="stage-wrap"><canvas id="stage" width="1920" height="1080" role="img" aria-label="Animated illustrative Blue Angels flight path"></canvas><div class="hud" id="hud"></div><div class="callout" id="callout"></div><div class="stage-watermark">ILLUSTRATIVE FLIGHT PATH / NOT TO SCALE</div></div><div class="transport"><button class="btn icon-btn" id="prevBtn" type="button" aria-label="Previous maneuver">←</button><button class="btn play-btn" id="playBtn" type="button">PAUSE</button><button class="btn icon-btn" id="nextBtn" type="button" aria-label="Next maneuver">→</button><button class="btn" id="replayBtn" type="button">↺ REPLAY</button><label class="progress-label" for="progress">PROGRESS</label><input id="progress" type="range" min="0" max="1000" value="0" aria-label="Maneuver playback progress"></div><div class="viewer-bottom"><div class="view-switch" aria-label="Camera view"><span>VIEW</span><button class="btn active" data-view="spectator" type="button">CROWD</button><button class="btn" data-view="profile" type="button">PROFILE</button><button class="btn" data-view="overhead" type="button">OVERHEAD</button></div><label class="speed">PLAYBACK <input type="range" id="spd" min="0.35" max="2.4" step="0.05" value="1"><span id="speedValue">1×</span></label></div><div class="manual-card"><div class="manual-card-label"><span class="tiny-label">FROM THE 2026 MANUAL</span><a id="manualLink" href="maneuvers-manual.pdf" target="_blank" rel="noopener">OPEN SOURCE PDF ↗</a></div><p class="desc" id="mDesc"></p><p class="manual-note">Displayed altitude and airspeed values come from published maneuver pages when available. Animation timing and geometry are illustrative, not flight data.</p></div></div>
+      <div class="hero-poster" id="heroPoster"></div>
+      <div class="hero-stage" id="heroStage" aria-hidden="true"></div>
+      <div class="wrap">
+        <div class="hero-copy">
+          <p class="eyebrow">U.S. Navy Flight Demonstration Squadron · 2026</p>
+          <h1 class="display" id="hero-title">Precision in<em>formation.</em></h1>
+          <p class="hero-lede">Fly every pass of the Blue Angels demonstration in 3D. Each maneuver is choreographed from the team's 2026 Maneuvers Manual and flown by a physics-based flight model.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="maneuvers.html">Explore the maneuvers <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn" href="show.html">How the show works</a>
+          </div>
         </div>
-      </div><p class="keyboard-hint">KEYBOARD: SPACE PLAY / PAUSE <span>·</span> ← → CHANGE MANEUVER <span>·</span> 1–3 CHANGE VIEW</p>
+      </div>
+      <div class="now-flying" id="nowFlying" hidden>
+        <i class="live" aria-hidden="true"></i>
+        <div><span>Now flying · <span id="nfRef"></span></span><strong id="nfName"></strong></div>
+        <a class="btn btn-small" id="nfLink" href="maneuvers.html">Watch</a>
+      </div>
     </section>
-    <section class="section-shell formations-section" id="formations" aria-labelledby="formations-title"><div class="section-heading"><div><p class="section-kicker">02 / SIX AIRCRAFT, ONE TEAM</p><h2 id="formations-title">The shape<br><em>of the show.</em></h2></div><p>Four aircraft form the Diamond. The two solo pilots fly opposing and individual passes. Together, all six become the Delta.</p></div><div class="formation-grid"><article class="formation-card"><span class="card-index">01 / FOUR AIRCRAFT</span><div class="formation-dots diamond-dots" aria-hidden="true"><i>1</i><i>2</i><i>3</i><i>4</i></div><h3>The Diamond</h3><p>Lead, right wing, left wing, and slot move as one through rolls, loops, and precision passes.</p><button class="text-action" type="button" data-maneuver="diamond-360">WATCH DIAMOND 360 ↗</button></article><article class="formation-card"><span class="card-index">02 / TWO AIRCRAFT</span><div class="formation-dots solo-dots" aria-hidden="true"><i>5</i><i>6</i></div><h3>The Solos</h3><p>Blue Angels 5 and 6 add opposing passes, high speed approaches, and contrasting attitudes.</p><button class="text-action" type="button" data-maneuver="knife-edge">WATCH KNIFE EDGE ↗</button></article><article class="formation-card"><span class="card-index">03 / SIX AIRCRAFT</span><div class="formation-dots delta-dots" aria-hidden="true"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i></div><h3>The Delta</h3><p>All six aircraft join for the final sequence, from coordinated rolls to the closing break.</p><button class="text-action" type="button" data-maneuver="delta-roll">WATCH DELTA ROLL ↗</button></article></div></section>
-    <section class="show-section" id="show-types" aria-labelledby="show-title"><div class="section-shell"><div class="section-heading"><div><p class="section-kicker">03 / WEATHER CHANGES THE SCRIPT</p><h2 id="show-title">Three ways<br><em>to fly the show.</em></h2></div><p>The manual publishes different sequences for high, low, and flat conditions. Select a profile in the explorer to follow its listed maneuvers in order.</p></div><div class="show-grid"><article><span class="show-number">01</span><div><h3>High show</h3><p>Full vertical choreography: loops, vertical breaks, and the Fleur De Lis.</p><strong>10,000 FT CEILING · 3 NM VISIBILITY</strong></div><button type="button" data-show="high">EXPLORE HIGH ↗</button></article><article><span class="show-number">02</span><div><h3>Low show</h3><p>A lower ceiling shifts the sequence toward flat passes and lower altitude formations.</p><strong>4,500 FT CEILING · 3 NM VISIBILITY</strong></div><button type="button" data-show="low">EXPLORE LOW ↗</button></article><article><span class="show-number">03</span><div><h3>Flat show</h3><p>The flat sequence replaces vertical work with low profile passes and turns.</p><strong>1,000 FT CEILING · 3 NM VISIBILITY</strong></div><button type="button" data-show="flat">EXPLORE FLAT ↗</button></article></div><p class="show-footnote">Weather requirements are from the manual’s Aerobatic Box Dimensions page (1-1). The actual demonstration depends on conditions and site approval.</p></div></section>
-    <section class="section-shell about-section" id="about"><div><p class="section-kicker">04 / BEYOND THE FLIGHT PATH</p><h2>More than<br><em>a flyover.</em></h2></div><div class="about-copy"><p>The Blue Angels’ mission is to showcase the teamwork and professionalism of the United States Navy and Marine Corps through flight demonstrations and community outreach.</p><p>This guide focuses on what a spectator sees and how the 2026 manual describes each maneuver. It is an independent educational project, with room to grow into pilot biographies, photography, aircraft stories, and show history.</p><a href="https://www.blueangels.navy.mil/" target="_blank" rel="noopener">VISIT THE OFFICIAL BLUE ANGELS SITE ↗</a></div></section>
-    <section class="sources-section" id="sources"><div class="section-shell"><p class="section-kicker">REFERENCE DESK</p><div class="sources-layout"><h2>Source<br><em>material.</em></h2><div><a href="maneuvers-manual.pdf" target="_blank" rel="noopener"><span>01 / PRIMARY SOURCE</span><strong>2026 Blue Angels Maneuvers Manual</strong><span>LOCAL PDF ↗</span></a><a href="https://www.blueangels.navy.mil/show/resources.htm" target="_blank" rel="noopener"><span>02 / U.S. NAVY</span><strong>Official air show support resources</strong><span>OPEN ↗</span></a><a href="https://www.blueangels.navy.mil/faq/" target="_blank" rel="noopener"><span>03 / U.S. NAVY</span><strong>Blue Angels frequently asked questions</strong><span>OPEN ↗</span></a></div></div></div></section>
+
+    <section class="stat-band" aria-label="At a glance">
+      <div class="wrap">
+        <div class="stat"><b id="statCount">54</b><span>Maneuvers in 3D</span></div>
+        <div class="stat"><b>6 + 1</b><span>Super Hornets + Fat Albert</span></div>
+        <div class="stat"><b>3</b><span>Show profiles</span></div>
+        <div class="stat"><b>1,500′</b><span>Show line to crowd line</span></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="feat-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Signature maneuvers</p>
+            <h2 class="display" id="feat-title">Pick a pass. <em>Take a seat.</em></h2>
+          </div>
+          <p>Watch from the crowd line, ride along in a chase plane or orbit the formation. Altitude, airspeed and G update live as each jet flies.</p>
+        </div>
+        <div class="card-grid" id="featured"></div>
+      </div>
+    </section>
+
+    <section class="section section-alt" aria-labelledby="team-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Who flies what</p>
+            <h2 class="display" id="team-title">Six jets. <em>One team.</em></h2>
+          </div>
+          <p>The Diamond flies the close formation work, the two solos fly the opposing passes, and all six join as the Delta. Fat Albert, the Marine Corps C-130J, opens the show.</p>
+        </div>
+        <div class="team-grid">
+          <article class="team-card">
+            <span class="count">#1 – #4</span>
+            <svg class="formation-svg" viewBox="0 0 200 110" aria-hidden="true"><g fill="currentColor"><path d="M100 10l7 18h-14z"/><path d="M76 40l7 18H69z"/><path d="M124 40l7 18h-14z"/><path d="M100 70l7 18h-14z"/></g></svg>
+            <h3 class="display">The Diamond</h3>
+            <p>Lead, right wing, left wing and slot fly loops, rolls and passes with wingtips about 18 inches apart.</p>
+            <a class="link-arrow" href="maneuvers.html?group=diamond">Diamond maneuvers <span class="arrow">→</span></a>
+          </article>
+          <article class="team-card">
+            <span class="count">#5 &amp; #6</span>
+            <svg class="formation-svg" viewBox="0 0 200 110" aria-hidden="true"><g fill="currentColor"><path d="M40 55l18-7v14z"/><path d="M160 55l-18-7v14z"/></g><path d="M64 55h72" stroke="currentColor" stroke-dasharray="4 6" opacity=".6"/></svg>
+            <h3 class="display">The Solos</h3>
+            <p>The lead and opposing solos fly head-on crosses, the sneak pass, knife edges and high-alpha passes.</p>
+            <a class="link-arrow" href="maneuvers.html?group=solo">Solo maneuvers <span class="arrow">→</span></a>
+          </article>
+          <article class="team-card">
+            <span class="count">All six</span>
+            <svg class="formation-svg" viewBox="0 0 200 110" aria-hidden="true"><g fill="currentColor"><path d="M100 10l7 18h-14z"/><path d="M76 40l7 18H69z"/><path d="M124 40l7 18h-14z"/><path d="M100 70l7 18h-14z"/><path d="M52 70l7 18H45z"/><path d="M148 70l7 18h-14z"/></g></svg>
+            <h3 class="display">The Delta</h3>
+            <p>All six jets close the show together with the Delta Roll, the Fleur De Lis and the Loop Break / 6-Plane Cross.</p>
+            <a class="link-arrow" href="maneuvers.html?group=delta">Delta maneuvers <span class="arrow">→</span></a>
+          </article>
+          <article class="team-card">
+            <span class="count">C-130J</span>
+            <svg class="formation-svg" viewBox="0 0 200 110" aria-hidden="true"><g fill="currentColor"><rect x="96" y="20" width="8" height="74" rx="4"/><rect x="40" y="44" width="120" height="7" rx="3"/><rect x="80" y="86" width="40" height="5" rx="2"/></g></svg>
+            <h3 class="display">Fat Albert</h3>
+            <p>The Marine Corps C-130J flies a low transition takeoff, parade and flat passes, and a steep assault landing.</p>
+            <a class="link-arrow" href="maneuvers.html?show=c130">Fat Albert maneuvers <span class="arrow">→</span></a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="show-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Weather sets the script</p>
+            <h2 class="display" id="show-title">Three ways to <em>fly the show.</em></h2>
+          </div>
+          <p>The manual publishes a different sequence for each cloud ceiling. Play any of them maneuver by maneuver in the theater.</p>
+        </div>
+        <div class="profile-list" id="profiles"></div>
+      </div>
+    </section>
+
+    <section class="section section-alt" aria-labelledby="gal-title">
+      <div class="wrap gallery-teaser">
+        <div>
+          <p class="eyebrow" id="galEyebrow">From the photo pit</p>
+          <h2 class="display" id="gal-title" style="font-size:clamp(42px,6vw,72px);margin:0 0 16px">Airshow <em style="font-style:normal;color:var(--accent)">galleries.</em></h2>
+          <p style="color:var(--muted);max-width:460px;margin:0 0 26px" id="galLede">Photo galleries from Blue Angels shows around the country, organized by show site and season.</p>
+          <a class="btn" href="gallery.html" id="galLink">Visit the galleries <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+        <div class="frame-stack" id="galFrames" aria-hidden="true"><div>Show photos</div><div></div><div></div><div></div><div></div></div>
+      </div>
+    </section>
   </main>
-  <footer><div class="footer-brand"><strong>BLUE ANGELS</strong><span>THE MANEUVER GUIDE</span></div><p>Independent fan project. Visualizations are illustrative and not for navigation or flight.</p><a href="#top">BACK TO TOP ↑</a></footer>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html"><svg viewBox="0 0 40 40" aria-hidden="true"><g fill="currentColor"><path d="M20 3l3 7h-6z"/><path d="M11 13l3 7H8z"/><path d="M29 13l3 7h-6z"/><path d="M20 23l3 7h-6z"/></g></svg><span class="brand-name"><strong>BLUE ANGELS</strong><span>Maneuver Guide</span></span></a>
+          <p style="margin:16px 0 0;max-width:420px">An independent fan project. Not affiliated with or endorsed by the U.S. Navy or the Blue Angels. Animations are illustrative and must never be used as flight guidance.</p>
+        </div>
+        <div>
+          <h4>Explore</h4>
+          <ul><li><a href="maneuvers.html">Maneuver theater</a></li><li><a href="show.html">The show</a></li><li><a href="gallery.html">Galleries</a></li></ul>
+        </div>
+        <div>
+          <h4>Sources</h4>
+          <ul><li><a href="maneuvers-manual.pdf" target="_blank" rel="noopener">2026 Maneuvers Manual (PDF)</a></li><li><a href="https://www.blueangels.navy.mil/" target="_blank" rel="noopener">Official Blue Angels site</a></li><li><a href="https://www.blueangels.navy.mil/faq/" target="_blank" rel="noopener">Blue Angels FAQ</a></li></ul>
+        </div>
+      </div>
+      <div class="footer-fine"><span>© <span data-year>2026</span> navyblueangels.com</span><span>Built with Three.js</span></div>
+    </div>
+  </footer>
 </body>
 </html>

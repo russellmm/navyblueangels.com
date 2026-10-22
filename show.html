@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" data-theme="cinematic">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05080f">
+  <title>The Show | Blue Angels Maneuver Guide</title>
+  <meta name="description" content="How a Blue Angels demonstration is flown: the high, low and flat show sequences, the aerobatic box, weather minimums and contingencies from the 2026 Maneuvers Manual.">
+  <script>try{var t=localStorage.getItem('ba-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <script type="module" src="assets/js/ui/site.js"></script>
+  <script type="module" src="assets/js/ui/show.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html" aria-label="Blue Angels Maneuver Guide home">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><g fill="currentColor"><path d="M20 3l3 7h-6z"/><path d="M11 13l3 7H8z"/><path d="M29 13l3 7h-6z"/><path d="M20 23l3 7h-6z"/></g><path d="M20 6v28M6 20h28" stroke="currentColor" stroke-width="1" opacity=".35"/></svg>
+        <span class="brand-name"><strong>BLUE ANGELS</strong><span>Maneuver Guide</span></span>
+      </a>
+      <nav class="nav" id="site-nav" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="maneuvers.html">Maneuvers</a>
+        <a href="show.html" aria-current="page">The Show</a>
+        <a href="gallery.html">Galleries</a>
+      </nav>
+      <div class="header-tools">
+        <button class="theme-toggle" type="button" data-theme-toggle><span class="theme-swatch" aria-hidden="true"></span><span class="theme-label">Cinematic</span></button>
+        <button class="menu-btn" type="button" data-menu aria-controls="site-nav" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="page-head">
+      <div class="wrap">
+        <p class="eyebrow">2026 Maneuvers Manual</p>
+        <h1 class="display">How the show <em>is flown.</em></h1>
+        <p>A Blue Angels demonstration follows one of three published sequences, chosen by the weather on the day, all flown inside a defined aerobatic box in front of the crowd.</p>
+      </div>
+    </div>
+
+    <section class="section" aria-labelledby="seq-title">
+      <div class="wrap">
+        <h2 class="sr-only" id="seq-title">Show sequences</h2>
+        <div class="show-tabs" role="group" aria-label="Show profile" id="tabs"></div>
+        <div class="seq-layout">
+          <div class="seq-summary" id="summary"></div>
+          <ol class="seq" id="seq"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" aria-labelledby="box-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Manual 1-1 · 1-2</p>
+            <h2 class="display" id="box-title">The aerobatic <em>box.</em></h2>
+          </div>
+          <p>Maneuvers are flown in front of the crowd, centered on a point on the show line. The surface under the box must be clear of everyone except mission-essential personnel.</p>
+        </div>
+        <figure class="box-figure">
+          <svg viewBox="0 0 1000 560" role="img" aria-labelledby="boxSvgTitle">
+            <title id="boxSvgTitle">Plan view of the aerobatic box: the show line runs left to right through center point, the crowd line is 1,500 feet closer, the minimum box extends one nautical mile either side of center point, transition areas extend to three nautical miles, and 30 degree ingress lines cross at center point.</title>
+            <defs>
+              <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" stroke-width="1" opacity=".18"/></pattern>
+            </defs>
+            <g fill="none" stroke="currentColor" style="color:var(--text)">
+              <!-- scale: 1 NM = 150 px; CP at (500, 250); crowd line at 1,500 ft = 37 px below -->
+              <rect x="350" y="100" width="300" height="150" fill="url(#hatch)" stroke="var(--accent)" stroke-width="2"/>
+              <rect x="50" y="100" width="300" height="150" stroke-dasharray="4 6" opacity=".45"/>
+              <rect x="650" y="100" width="300" height="150" stroke-dasharray="4 6" opacity=".45"/>
+              <line x1="20" y1="250" x2="980" y2="250" stroke="var(--accent)" stroke-width="3"/>
+              <line x1="20" y1="287" x2="980" y2="287" opacity=".8"/>
+              <line x1="500" y1="40" x2="500" y2="520" stroke-dasharray="2 6" opacity=".45"/>
+              <line x1="110" y1="475" x2="890" y2="25" stroke-dasharray="6 6" opacity=".45"/>
+              <line x1="110" y1="25" x2="890" y2="475" stroke-dasharray="6 6" opacity=".45"/>
+              <path d="M425 300 L575 300 L615 350 L385 350 Z" fill="currentColor" opacity=".85" stroke="none"/>
+            </g>
+            <circle cx="500" cy="250" r="7" fill="var(--accent)"/>
+            <g font-family="Inter, sans-serif" font-size="13" fill="currentColor" style="color:var(--text)">
+              <text x="512" y="240" font-weight="700">CENTER POINT</text>
+              <text x="24" y="242" font-weight="700" fill="var(--accent)">SHOW LINE</text>
+              <text x="24" y="304">CROWD LINE · 1,500′</text>
+              <text x="500" y="93" text-anchor="middle" font-weight="700">MINIMUM AEROBATIC BOX</text>
+              <text x="200" y="93" text-anchor="middle" opacity=".7">TRANSITION AREA</text>
+              <text x="800" y="93" text-anchor="middle" opacity=".7">TRANSITION AREA</text>
+              <text x="500" y="332" text-anchor="middle" fill="var(--bg)" font-weight="700">SPECTATORS</text>
+              <text x="350" y="272" text-anchor="middle" opacity=".8">1 NM</text><text x="650" y="272" text-anchor="middle" opacity=".8">1 NM</text>
+              <text x="200" y="272" text-anchor="middle" opacity=".6">2 NM</text><text x="800" y="272" text-anchor="middle" opacity=".6">2 NM</text>
+              <text x="62" y="272" opacity=".6">3 NM</text><text x="938" y="272" text-anchor="end" opacity=".6">3 NM</text>
+              <text x="782" y="60" opacity=".65">30° ingress / egress</text>
+              <text x="508" y="535" opacity=".65">head-on line · behind the crowd</text>
+              <text x="508" y="56" opacity=".65">1 NM beyond the show line</text>
+            </g>
+          </svg>
+          <figcaption>Not to scale vertically. Distances from the manual's Aerobatic Box Dimensions (1-1) and Approved Ingress / Egress Routes (1-2) pages.</figcaption>
+        </figure>
+
+        <div class="facts" style="margin-top:28px">
+          <div class="fact"><div class="big">10,000′</div><h3 class="display">High show</h3><p>Minimum ceiling, with 3 NM visibility.</p></div>
+          <div class="fact"><div class="big">4,500′</div><h3 class="display">Low show</h3><p>Minimum ceiling, with 3 NM visibility.</p></div>
+          <div class="fact"><div class="big">1,000′</div><h3 class="display">Flat show / C-130</h3><p>Minimum ceiling, with 3 NM visibility.</p></div>
+          <div class="fact"><div class="big">5 – 7 NM</div><h3 class="display">Restricted airspace</h3><p>A 5 NM temporary flight restriction for every demonstration, 7 NM when density altitude is expected above 4,000 ft.</p></div>
+          <div class="fact"><div class="big">150 – 450′</div><h3 class="display">Inbound altitudes</h3><p>Minimum crossing altitudes on the 6-Plane Cross: #1 &amp; #4 at 150′, #2 &amp; #5 at 300′, #3 &amp; #6 at 450′.</p></div>
+          <div class="fact"><div class="big">500′</div><h3 class="display">Crowd clearance</h3><p>Ingress and egress routes keep at least 500 ft laterally from the crowd. No passes parallel to the show line inside the 500′ line.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="cont-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Manual 3-12 · 3-13</p>
+            <h2 class="display" id="cont-title">When plans <em>change.</em></h2>
+          </div>
+          <p>The manual also covers what happens when a jet drops out and when a seventh aircraft joins to film.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><h3 class="display">5-Plane contingency</h3><p>Should any wingman fall out, #4 fills that position to balance the formation. If a solo falls out, the other solo flies single solo using the same maneuvers, with a few substitutions: if #5 is single solo, a minimum-radius turn followed by the sneak to vertical rolls is flown, and a parade pass replaces the tuck-over roll. If the Boss falls out, all aircraft orbit overhead until he can resume.</p></div>
+          <div class="fact"><h3 class="display">Coordinated photo platform</h3><p>When a qualified crew is at a show site, a seventh jet may fly in coordination with the Diamond, Solos or Delta to film a practice demonstration. It is not part of the formation and keeps its own deconfliction from every element. The theater's "Photo jet" camera is modeled on this position.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html"><svg viewBox="0 0 40 40" aria-hidden="true"><g fill="currentColor"><path d="M20 3l3 7h-6z"/><path d="M11 13l3 7H8z"/><path d="M29 13l3 7h-6z"/><path d="M20 23l3 7h-6z"/></g></svg><span class="brand-name"><strong>BLUE ANGELS</strong><span>Maneuver Guide</span></span></a>
+          <p style="margin:16px 0 0;max-width:420px">An independent fan project. Not affiliated with or endorsed by the U.S. Navy or the Blue Angels. Animations are illustrative and must never be used as flight guidance.</p>
+        </div>
+        <div><h4>Explore</h4><ul><li><a href="maneuvers.html">Maneuver theater</a></li><li><a href="show.html">The show</a></li><li><a href="gallery.html">Galleries</a></li></ul></div>
+        <div><h4>Sources</h4><ul><li><a href="maneuvers-manual.pdf" target="_blank" rel="noopener">2026 Maneuvers Manual (PDF)</a></li><li><a href="https://www.blueangels.navy.mil/" target="_blank" rel="noopener">Official Blue Angels site</a></li><li><a href="https://www.blueangels.navy.mil/faq/" target="_blank" rel="noopener">Blue Angels FAQ</a></li></ul></div>
+      </div>
+      <div class="footer-fine"><span>© <span data-year>2026</span> navyblueangels.com</span><span>Built with Three.js</span></div>
+    </div>
+  </footer>
+</body>
+</html>

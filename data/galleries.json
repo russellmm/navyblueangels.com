@@ -1,0 +1,19 @@
+{
+  "galleries": [
+    {
+      "id": "sf-fleet-week-2026",
+      "title": "San Francisco Fleet Week",
+      "location": "San Francisco Bay, CA",
+      "date": "2026-10-11",
+      "description": "The Blue Angels over the bay: the Diamond above Alcatraz and the solos flying past the USS Potomac.",
+      "cover": "galleries/sf-fleet-week-2026/03-thumb.jpg",
+      "photos": [
+        { "src": "galleries/sf-fleet-week-2026/01.jpg", "thumb": "galleries/sf-fleet-week-2026/01-thumb.jpg", "w": 2400, "h": 1601, "caption": "Fortus: #5 inverted over #6, gear down, with a gull for company", "credit": "Russell M" },
+        { "src": "galleries/sf-fleet-week-2026/02.jpg", "thumb": "galleries/sf-fleet-week-2026/02-thumb.jpg", "w": 2400, "h": 1601, "caption": "Double Farvel: #1 and #4 inverted over #2 and #3", "credit": "Russell M" },
+        { "src": "galleries/sf-fleet-week-2026/03.jpg", "thumb": "galleries/sf-fleet-week-2026/03-thumb.jpg", "w": 2400, "h": 1601, "caption": "The Diamond trailing smoke over Alcatraz", "credit": "Russell M" },
+        { "src": "galleries/sf-fleet-week-2026/04.jpg", "thumb": "galleries/sf-fleet-week-2026/04-thumb.jpg", "w": 2400, "h": 1601, "caption": "A solo passes behind the USS Potomac", "credit": "Russell M" },
+        { "src": "galleries/sf-fleet-week-2026/05.jpg", "thumb": "galleries/sf-fleet-week-2026/05-thumb.jpg", "w": 2400, "h": 1601, "caption": "Blue Angel 5 under the Potomac's signal flags", "credit": "Russell M" }
+      ]
+    }
+  ]
+}
