@@ -3,7 +3,7 @@ import { MANEUVERS, SHOWS } from '../sim/maneuvers.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const byId = (id) => MANEUVERS.find((m) => m.id === id);
-const keys = ['high', 'low', 'flat', 'c130'];
+const keys = ['high', 'low', 'flat', 'c130', 'alternate'];
 let current = keys.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'high';
 
 function render() {
@@ -13,7 +13,7 @@ function render() {
     <p class="eyebrow">${esc(s.ceiling)}</p>
     <h3 class="display">${esc(s.name)}</h3>
     <p>${esc(s.blurb)}</p>
-    <p>${s.seq.length} maneuvers, listed in the order of the manual's table of contents.${current === 'high' ? ' The high show list includes alternates the team picks between on the day, such as the three takeoff options.' : ''}</p>
+    <p>${s.seq.length} maneuvers, listed in the order of the manual's table of contents.${current === 'high' ? ' It opens with 2-10, the Half-Cuban Eight and Burner Loop linked into one takeoff; the stand-alone takeoff options are under Alternates.' : ''}</p>
     <a class="btn btn-primary" href="maneuvers.html?show=${current}&auto=1">Play the ${esc(s.name.toLowerCase())} <span class="arrow" aria-hidden="true">→</span></a>`;
   document.getElementById('seq').innerHTML = s.seq.map((id, i) => {
     const m = byId(id);

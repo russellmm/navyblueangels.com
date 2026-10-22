@@ -5,7 +5,7 @@
 
 import {
   Pilot, formationTracks, blendInto, solve, closestPass,
-  NM, KT, DEG, DT, GROUND_Y, V, heading
+  NM, KT, DEG, DT, G, GROUND_Y, V, heading
 } from './flight.js';
 
 const D4 = [1, 2, 3, 4];
@@ -165,6 +165,48 @@ function diamondTakeoff(o) {
   return { ref, tLift };
 }
 const takeoffSchedule = (tLift, extra = []) => [{ t: 0, form: 'fingertip' }, { t: tLift + 2, form: 'diamond', dur: 5 }, ...extra];
+
+// 2-10a and 2-10b linked, as flown in normal weather. Timed to show video (seconds from
+// "smoke on" with brakes set): brakes off 4, lift off 23, #4 in the slot and the climb begins 34,
+// burners off and smoke on near the peak 60, inverted at the top 66, slow roll upright 68-77,
+// level near CP 90, burner loop 97. To fit those times the downline is steeper than the
+// diagram's 45° and the vertical sits about 1.5 NM crowd-right; the loop stays inside the box,
+// just crowd-left of CP as on 2-10b.
+add({
+  id: 'cuban-loop', ref: '2-10', pages: ['2-10a', '2-10b'], name: 'Diamond Half-Cuban Eight / Burner Loop on Takeoff', group: 'diamond', ids: D4,
+  data: { min: "0′", max: "9,500′", kin: '0', kout: '380' },
+  text: 'Once requisite proficiency is gained in both the Diamond Burner Loop and Diamond Half Cuban Eight, these two maneuvers may be linked together for one continuous takeoff maneuver, with the Diamond Half-Cuban Eight being first. The Diamond Burner Go is a formation takeoff in fingertip. Immediately after takeoff, the four aircraft will transition to the diamond while accelerating in a low transition on show line. The Half-Cuban Eight commences from the low transition; the Loop follows, and the show line clear is a turn behind the crowd.',
+  note: 'This is the usual opener under normal weather. The manual describes the two halves on separate pages (2-10a and 2-10b), shown below. The timing follows show video: smoke on with brakes set, burners from brake release (they hide the smoke) until near the top of the Half-Cuban Eight, a slow roll upright on the way down, then level past CP into the Burner Loop. 2-10a, 2-10b and 2-11 on their own are listed under Alternates.',
+  build() {
+    // brake release, start of the vertical pull, top of the vertical (ft); degrees past inverted
+    // before the roll; dive speed (kts, kts/s); height to pull out to; loop radius; run-in speed
+    const o = { x0: -2700, xPull: 6300, top: 5000, past: 25, dk: 330, dkr: 20, lvl: 1200, gpo: 4, R2: 2200, lk: 240, lkr: 15 };
+    const ref = new Pilot({ x: o.x0, dir: 'R', kts: 0, smoke: true });
+    ref.mark('Smoke on, brakes set').fly(4);
+    // the burners hide the smoke from brake release until they come out of burner near the top
+    ref.mark('Off brakes now').ab(true).smoke(false).takeoff({ rotate: 140, accel: 0.386, label: 'Lift off' });
+    ref.lowTransition({ kts: 265, alt: 40, accel: 0.62 });
+    const tClimb = ref.t;
+    // every pull eases its G in and out over a couple of seconds (ramp), so the noses rise and settle smoothly
+    ref.mark('Diamond set, Half-Cuban Eight begins').pitchTo(10, { g: 0.6, ramp: 3, energy: 0.2 }).untilX(o.xPull);
+    ref.mark('Pull to the vertical').pull(80, { r: 3200, ramp: 2.5, energy: 0.2 }).until((q) => q.alt > o.top, { energy: 0.3 });
+    const tOver = ref.t;
+    ref.ab(false).smoke(true).mark('Burners off, smoke on').pull(90 + o.past, { g: 2.5, ramp: 2.5, energy: 0.2 });
+    // slow roll upright with the wings unloaded: gravity bends the path down into the dive, so the
+    // nose falls smoothly instead of being pulled or pushed
+    ref.mark('Slow roll upright').roll(-180, { rate: 20, ramp: 0.8, fall: 1, energy: 0.3 });
+    ref.holdG(3, { g: 0.3, energy: 0.3 });     // keep the wings light a little longer so the dive steepens
+    ref.speed(o.dk, o.dkr).until((q) => q.alt < o.lvl + (q.v ** 2 / (o.gpo * G)) * (1 - Math.cos(q.gamma)), { energy: 0.3 });
+    ref.pitchTo(0, { g: o.gpo, ramp: 3 }).mark('Level, passing CP');
+    ref.speed(o.lk, o.lkr).hold(ref.alt).fly(6.9).hold(null).speed(null);
+    // the loop carries straight on into the 12° climb of the clear, without letting go of the pull
+    ref.ab(true).mark('Burner loop').pull(372, { r: o.R2, ramp: 3, energy: 0.3 }).ab(false);
+    ref.mark('Clear behind the crowd').turn(90, { dir: 'L', bank: 60 });
+    const tracks = formationTracks(ref.track, D4, [{ t: 0, form: 'fingertip' }, { t: tClimb - 8, form: 'diamond', dur: 8 }]);
+    const tTop = timeWhen(ref.track, (s) => s.d[0] < 0 && s.d[1] <= 0 && s.n[1] < 0);
+    return finish(tracks, { events: [...eventsOf(ref), tTop > tOver && evAt(tTop, 'Inverted at the top')] });
+  }
+});
 
 add({
   id: 'half-cuban', ref: '2-10a', name: 'Diamond Half-Cuban Eight on Takeoff', group: 'diamond', ids: D4,
@@ -1053,7 +1095,7 @@ export const SHOWS = {
   high: {
     name: 'High show', ceiling: '10,000′ ceiling · 3 NM visibility',
     blurb: 'The full vertical show: loops, vertical breaks, the Fleur De Lis and the Loop Break / 6-Plane Cross.',
-    seq: ['half-cuban', 'burner-loop', 'half-cuban-break', 'dirty-roll-takeoff', 'immelmann-6', 'delta-head-on', 'diamond-360', 'knife-edge', 'diamond-roll', 'inv-inv', 'aileron-roll', 'fortus', 'dirty-loop', 'mrt', 'farvel', 'opp-mrt', 'echelon-parade', 'opp-hrolls', 'changeover', 'sneak', 'sneak-vertical', 'la-loop', 'four-point', 'vertical-break', 'vertical-pitch', 'barrel-break', 'tuck-over', 'low-break-cross', 'high-alpha', 'burner-270', 'delta-roll', 'fleur', 'loop-break-cross', 'delta-breakout', 'delta-flat', 'pitch-up-break']
+    seq: ['cuban-loop', 'dirty-roll-takeoff', 'immelmann-6', 'delta-head-on', 'diamond-360', 'knife-edge', 'diamond-roll', 'inv-inv', 'aileron-roll', 'fortus', 'dirty-loop', 'mrt', 'farvel', 'opp-mrt', 'echelon-parade', 'opp-hrolls', 'changeover', 'sneak', 'sneak-vertical', 'la-loop', 'four-point', 'vertical-break', 'vertical-pitch', 'barrel-break', 'tuck-over', 'low-break-cross', 'high-alpha', 'burner-270', 'delta-roll', 'fleur', 'loop-break-cross', 'delta-breakout', 'delta-flat', 'pitch-up-break']
   },
   low: {
     name: 'Low show', ceiling: '4,500′ ceiling · 3 NM visibility',
@@ -1069,6 +1111,11 @@ export const SHOWS = {
     name: 'Fat Albert', ceiling: '1,000′ ceiling · 3 NM visibility',
     blurb: 'The Marine Corps C-130J opens the show with a low transition takeoff and an assault landing.',
     seq: ['c130-takeoff', 'c130-remote', 'c130-parade', 'c130-flat', 'c130-head', 'c130-remote-head', 'c130-landing']
+  },
+  alternate: {
+    name: 'Alternates', ceiling: 'Flown in place of the linked 2-10 takeoff',
+    blurb: 'The two halves of the 2-10 takeoff flown on their own, and the Half-Cuban Eight Break Out for clouds biased to crowd left.',
+    seq: ['half-cuban', 'burner-loop', 'half-cuban-break']
   }
 };
 
@@ -1077,7 +1124,7 @@ for (const m of MANEUVERS) m.shows = Object.keys(SHOWS).filter((k) => SHOWS[k].s
 
 export const PAGE = {
   '1-1': 7, '1-2': 8, '1-3': 9, '1-4': 10, '2-1': 12, '2-2': 13, '2-3': 14, '2-4': 15, '2-5': 16, '2-6': 17, '2-7': 18,
-  '2-10a': 19, '2-10b': 20, '2-11': 21, '2-12': 22, '2-13': 23, '2-14': 24, '2-15': 25, '2-16': 26, '2-17': 27, '2-18': 28,
+  '2-10': 19, '2-10a': 19, '2-10b': 20, '2-11': 21, '2-12': 22, '2-13': 23, '2-14': 24, '2-15': 25, '2-16': 26, '2-17': 27, '2-18': 28,
   '2-19': 29, '2-20': 30, '2-21': 31, '2-22': 32, '2-22a': 33, '2-23': 34, '2-24': 35, '2-25': 36, '2-26': 37, '2-27': 38,
   '2-27a': 39, '2-28': 40, '2-29': 41, '2-30': 42, '2-31': 43, '2-32': 44, '2-33': 45, '2-34': 46, '2-35': 47, '2-36': 48,
   '2-37': 49, '2-38': 50, '2-39': 51, '2-40': 52, '2-41': 53, '2-42': 54, '3-1': 55, '3-2': 56, '3-3': 57, '3-4': 58,

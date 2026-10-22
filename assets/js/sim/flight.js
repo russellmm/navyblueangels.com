@@ -134,12 +134,35 @@ export class Track {
       for (let j = Math.max(0, i - 4); j <= Math.min(n - 1, i + 4); j++) { s += nz[j]; c++; }
       sm[i] = s / c;
     }
+    const ground = (i) => this.p[i * 3 + 1] <= GROUND_Y + 0.5;
+    const raw = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       const kts = Math.max(this.v[i] / KT, 60);
-      const onGround = this.p[i * 3 + 1] <= GROUND_Y + 0.5;
       // F/A-18E: about 4.5 deg AoA at 1 g / 300 kts, scaling with load and 1/V^2.
       const a = (this.aoaRef ?? 4.5) * sm[i] * (300 / kts) ** 2;
-      alpha[i] = onGround ? 0 : clamp(a, -6, this.aoaMax ?? 32) * DEG;
+      raw[i] = ground(i) ? 0 : clamp(a, -6, this.aoaMax ?? 32) * DEG;
+    }
+    // The nose is drawn at path + AoA, so AoA must not jump: average out blips shorter than about
+    // half a second, then limit how fast it can change (both ways, so it eases into a pull instead
+    // of lagging behind it). On the runway the nose may only rotate a little, just before liftoff
+    // and after touchdown.
+    const W = 12;
+    for (let i = 0; i < n; i++) {
+      if (ground(i)) { alpha[i] = 0; continue; }
+      let s = 0, c = 0;
+      for (let j = Math.max(0, i - W); j <= Math.min(n - 1, i + W); j++) { s += raw[j]; c++; }
+      alpha[i] = s / c;
+    }
+    const lim = 15 * DEG * DT, rot = 8 * DEG;
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = n - 2; i >= 0; i--) {
+        const lo = alpha[i + 1] - lim;
+        alpha[i] = ground(i) ? Math.min(Math.max(alpha[i], lo), rot) : clamp(alpha[i], lo, alpha[i + 1] + lim);
+      }
+      for (let i = 1; i < n; i++) {
+        const hi = alpha[i - 1] + lim;
+        alpha[i] = ground(i) ? Math.min(Math.max(alpha[i], alpha[i - 1] - lim), hi, rot) : clamp(alpha[i], alpha[i - 1] - lim, hi);
+      }
     }
     this.nz = sm; this.alpha = alpha;
     this.finalized = true;
@@ -316,12 +339,31 @@ export class Pilot {
   }
 
   // Roll about the nose. Positive = right roll. o.rate deg/s.
+  // o.pull: pitch rate (deg/s) held through the roll, or a function of roll progress (0..1).
+  // o.fall: share of gravity the wings do not carry (1 = zero-lift roll), which bends the flight
+  // path down in the vertical plane the way a slow roll off the top of a loop falls into a dive.
   roll(deg, o = {}) {
     const rate = (o.rate ?? 180) * DEG;
-    const pitch = o.pull ? o.pull * DEG : 0;
+    const pullAt = typeof o.pull === 'function' ? o.pull : () => o.pull ?? 0;
+    const energy = o.energy ?? (o.pull ? 0.55 : 0);
     // slow formation rolls ease in and out gently; quick solo rolls stay crisp
     const ramp = o.ramp ?? clamp(36 / (o.rate ?? 180), 0.25, 0.8);
-    return this._angle(deg * DEG, () => rate, (w) => this._step({ roll: w, pitch, energy: o.energy ?? (pitch ? 0.55 : 0) }), { ramp });
+    let done = 0;
+    const total = Math.abs(deg * DEG);
+    const ease = (o.fallIn ?? 1.5) * rate;     // roll angle over which the unloading eases in and out
+    return this._angle(deg * DEG, () => rate, (w) => {
+      done += Math.abs(w) * DT;
+      if (o.fall) {
+        let ax = V.cross(this.d, UP);
+        if (V.len(ax) > 1e-3) {
+          ax = V.norm(ax);
+          const f = o.fall * smooth(Math.min(done, total - done) / ease);
+          const dg = -f * G * Math.cos(this.gamma) / Math.max(this.v, 50) * DT;
+          this.d = V.rot(this.d, ax, dg); this.n = V.rot(this.n, ax, dg);
+        }
+      }
+      this._step({ roll: w, pitch: pullAt(Math.min(done / total, 1)) * DEG, energy });
+    }, { ramp });
   }
   // Roll to an absolute bank angle (deg, right positive, 180 = inverted) by the shortest way
   // unless o.dir ('L' | 'R') is given.
@@ -353,7 +395,7 @@ export class Pilot {
       let u0 = V.sub(UP, V.mul(this.d, this.d[1]));
       const upright = V.len(u0) > 1e-3 ? V.dot(this.n, V.norm(u0)) : this.n[1];
       const s = Math.sign(err) * (upright >= 0 ? 1 : -1);
-      const max = rate(), accel = max / 0.35;
+      const max = rate(), accel = max / (o.ramp ?? 0.35);
       const stop = (cur * cur) / (2 * accel);
       cur = Math.abs(err) <= stop ? Math.max(cur - accel * DT, max * 0.06) : Math.min(cur + accel * DT, max);
       this._step({ pitch: s * Math.min(cur, Math.abs(err) / DT), energy: o.energy ?? 0.55 });

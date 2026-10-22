@@ -20,7 +20,7 @@ const state = {
 };
 
 // ---------- catalog ----------
-const SHOW_TABS = [['all', 'All'], ['high', 'High'], ['low', 'Low'], ['flat', 'Flat'], ['c130', 'Fat Albert']];
+const SHOW_TABS = [['all', 'All'], ['high', 'High'], ['low', 'Low'], ['flat', 'Flat'], ['c130', 'Fat Albert'], ['alternate', 'Alternates']];
 const GROUP_TABS = [['all', 'Everyone'], ['diamond', 'Diamond'], ['solo', 'Solos'], ['delta', 'Delta']];
 
 function entries() {
@@ -84,7 +84,7 @@ function step(dir) {
 
 // ---------- detail panel ----------
 function renderDetail(m) {
-  const page = PAGE[m.ref];
+  const refs = m.pages ?? [m.ref];
   const shows = m.shows.map((s) => `<span class="tag">${esc(SHOWS[s].name)}</span>`).join('');
   const variant = m.variants && state.show !== 'all' && m.variants[state.show] ? `<p class="note">${esc(m.variants[state.show])} (this view follows the ${esc(SHOWS[state.show].name.toLowerCase())}).</p>` : '';
   $('detail').innerHTML = `
@@ -94,7 +94,7 @@ function renderDetail(m) {
         <h2 class="display">${esc(m.name)}</h2>
         <div class="chips"><span class="tag">${esc(GROUPS[m.group])}</span>${shows}</div>
       </div>
-      <a class="btn btn-small" href="maneuvers-manual.pdf#page=${page}" target="_blank" rel="noopener">Manual page ${esc(m.ref)} <span class="arrow" aria-hidden="true">↗</span></a>
+      <div class="chips">${refs.map((r) => `<a class="btn btn-small" href="maneuvers-manual.pdf#page=${PAGE[r]}" target="_blank" rel="noopener">Manual page ${esc(r)} <span class="arrow" aria-hidden="true">↗</span></a>`).join('')}</div>
     </div>
     <div class="data-grid">
       <div><span>Minimum altitude</span><b>${esc(m.data.min)}</b></div>
@@ -108,10 +108,10 @@ function renderDetail(m) {
       ${m.note ? `<p class="note">${esc(m.note)}</p>` : ''}
       ${variant}
     </div>
-    <figure class="diagram">
-      <button type="button" data-zoom="assets/img/manual/${esc(m.ref)}.jpg" aria-label="Enlarge manual diagram ${esc(m.ref)}"><img src="assets/img/manual/${esc(m.ref)}.jpg" alt="Maneuvers Manual diagram ${esc(m.ref)}: ${esc(m.name)}" loading="lazy" width="1100" height="825"></button>
-      <figcaption><span>Manual diagram ${esc(m.ref)} — the crowd is at the bottom of the page.</span><a href="maneuvers-manual.pdf#page=${page}" target="_blank" rel="noopener">Open PDF page ${page} ↗</a></figcaption>
-    </figure>
+    ${refs.map((r, i) => `<figure class="diagram">
+      <button type="button" data-zoom="assets/img/manual/${esc(r)}.jpg" aria-label="Enlarge manual diagram ${esc(r)}"><img src="assets/img/manual/${esc(r)}.jpg" alt="Maneuvers Manual diagram ${esc(r)}: ${esc(m.name)}" loading="lazy" width="1100" height="825"></button>
+      <figcaption><span>Manual diagram ${esc(r)}${refs.length > 1 ? ` — part ${i + 1} of ${refs.length}, flown together` : ''} — the crowd is at the bottom of the page.</span><a href="maneuvers-manual.pdf#page=${PAGE[r]}" target="_blank" rel="noopener">Open PDF page ${PAGE[r]} ↗</a></figcaption>
+    </figure>`).join('')}
     <p class="disclaimer">Published altitudes and airspeeds are from the 2026 Maneuvers Manual. The 3D flight paths, timing and spacing are an illustrative interpretation of its diagrams and text, not flight data. Live telemetry describes the animation.</p>`;
 }
 
