@@ -141,16 +141,18 @@ function wingTexture(kind) {
   return WING_TEX[kind];
 }
 
+// Fin UV: u = chord, v 0..0.5 = inboard face (root->tip), v 0.5..1 = outboard face (root->tip).
+// As on the real jets, only the outboard face carries the number; the inboard face is plain.
+// The fins mirror each other, so the number needs a different transform on each to read correctly
+// from outside: right fin rotate 180°, left fin flip vertical.
 function tailTexture(num, side) {
   return canvasTexture(1024, 1024, (ctx, w, h) => {
     ctx.fillStyle = BLUE; ctx.fillRect(0, 0, w, h);
     panelLines(ctx, w, h, 31 + num, 0.12);
     ctx.fillStyle = GOLD;
     ctx.fillRect(0, h * 0.44, w, h * 0.06); ctx.fillRect(0, h * 0.94, w, h * 0.06);   // tip caps
-    ctx.fillRect(w * 0.2, h * 0.5 + h * 0.36, w * 0.55, h * 0.012);                   // pinstripe under the cap
-    // small tail number on the outboard (lower-half) surface
-    const o = { flipY: true };   // reads correctly on the outboard face of both fins
-    text(ctx, String(num), w * 0.45, h * 0.72, 330, { ...o, color: GOLD });
+    ctx.fillRect(w * 0.2, h * 0.86, w * 0.55, h * 0.012);                              // outboard pinstripe
+    text(ctx, String(num), w * 0.45, h * 0.72, 330, { ...(side > 0 ? { rot: Math.PI } : { flipY: true }), color: GOLD });
   });
 }
 
