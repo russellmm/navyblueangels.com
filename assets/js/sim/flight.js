@@ -319,7 +319,9 @@ export class Pilot {
   roll(deg, o = {}) {
     const rate = (o.rate ?? 180) * DEG;
     const pitch = o.pull ? o.pull * DEG : 0;
-    return this._angle(deg * DEG, () => rate, (w) => this._step({ roll: w, pitch, energy: o.energy ?? (pitch ? 0.55 : 0) }), { ramp: o.ramp ?? 0.25 });
+    // slow formation rolls ease in and out gently; quick solo rolls stay crisp
+    const ramp = o.ramp ?? clamp(36 / (o.rate ?? 180), 0.25, 0.8);
+    return this._angle(deg * DEG, () => rate, (w) => this._step({ roll: w, pitch, energy: o.energy ?? (pitch ? 0.55 : 0) }), { ramp });
   }
   // Roll to an absolute bank angle (deg, right positive, 180 = inverted) by the shortest way
   // unless o.dir ('L' | 'R') is given.
@@ -360,28 +362,36 @@ export class Pilot {
   }
 
   // Coordinated turn about world vertical. deg > 0; o.dir 'L' | 'R' relative to the pilot.
-  // o.bank (deg) or o.r (radius, ft). Rolls in and out at o.rollRate; turn rate follows bank.
+  // o.bank (deg) or o.r (radius, ft). The roll into and out of the bank is smooth: the roll rate
+  // builds up at o.rollAcc (deg/s^2), holds at most o.rollRate (deg/s), and eases off as the bank
+  // is reached, the way formation pilots roll in. Turn rate always follows the actual bank.
   // o.remaining (optional) returns the heading change still needed (rad) instead of deg.
   turn(deg, o = {}) {
     const yawSign = o.dir === 'R' ? -1 : 1;      // +yaw about world up = left turn
     const wings = -yawSign;                      // right turn = right (+) bank
-    const rollRate = (o.rollRate ?? 90) * DEG;
+    const rollRate = (o.rollRate ?? 30) * DEG;                               // formation default: gentle
+    const rollAcc = (o.rollAcc ?? Math.max((o.rollRate ?? 30) * 1.2, 35)) * DEG;
     const bankFor = () => (o.r ? Math.atan((this.v * this.v) / (G * o.r)) : (o.bank ?? 60) * DEG);
     const goal = deg * DEG;
-    let turned = 0, guard = 0, rollingOut = false;
+    let turned = 0, guard = 0, rollingOut = false, p = 0;
     const remaining = o.remaining ?? (() => goal - turned);
     while (guard++ < 40000) {
       const b = this.bank;
       const omega = Math.sign(b) === wings ? (G * Math.tan(Math.min(Math.abs(b), 85 * DEG))) / Math.max(this.v, 50) : 0;
-      const outAng = (Math.abs(b) / rollRate) * omega * 0.5;
+      // heading still to come while rolling back to wings level (eased roll profile)
+      const outAng = omega * 0.5 * (Math.abs(b) / rollRate + rollRate / rollAcc);
       const rem = remaining(turned);
       if (!rollingOut && rem <= outAng + omega * DT) rollingOut = true;
-      if (rollingOut && Math.abs(b) < 0.2 * DEG) break;
+      if (rollingOut && Math.abs(b) < 0.2 * DEG && Math.abs(p) < rollAcc * DT * 2) break;
       const want = rollingOut ? 0 : bankFor() * wings;
-      const rollCmd = clamp((want - b) / DT, -rollRate, rollRate);
+      const err = want - b;
+      // roll rate that can still stop exactly on the target bank, then limit the change in rate
+      const pCmd = Math.sign(err) * Math.min(rollRate, Math.sqrt(2 * rollAcc * Math.abs(err)));
+      p += clamp(pCmd - p, -rollAcc * DT, rollAcc * DT);
+      if (Math.abs(err) < 0.05 * DEG && Math.abs(p) <= rollAcc * DT) p = err / DT;
       const yaw = Math.min(omega, Math.max(rem, 0) / DT) * yawSign;
       turned += Math.abs(yaw) * DT;
-      this._step({ roll: rollCmd, yaw, energy: o.energy ?? 0 });
+      this._step({ roll: p, yaw, energy: o.energy ?? 0 });
     }
     return this;
   }

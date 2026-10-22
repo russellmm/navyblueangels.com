@@ -492,12 +492,25 @@ add({
   id: 'echelon-parade', ref: '2-25', name: 'Echelon Parade', group: 'diamond', ids: D4,
   data: { min: "200′", max: "800′", kin: '310', kout: '290' },
   text: 'In right Echelon the Diamond executes a right to left non-aerobatic circular pass at approximately 60° AOB crossing over CP at a minimum altitude of 200’.',
+  note: 'Flown here as the team flies it at most shows: the echelon enters from behind the crowd on the right, sweeps a half circle in front of the crowd from right to left banked toward the spectators, and exits behind the crowd on the left.',
   build() {
-    const R = 4300, z0 = 1000;
-    const xc = Math.sqrt(2 * z0 * R - z0 * z0);
-    const ref = new Pilot({ x: -11000, alt: 400, z: z0, dir: 'R', kts: 310 });
-    ref.speed(290, 0.4).untilX(xc - 400).mark('Right echelon — 60° AOB').hold(250).turn(360, { dir: 'L', r: R });
-    ref.hold(400).fly(8);
+    // Right echelon enters from behind the crowd, crowd right, heading toward the show line, then flies a
+    // steady 60°-bank left turn: a half circle in front of the crowd, right to left, banked toward the
+    // spectators (tops of the jets toward the crowd, wingmen stepped up), over CP, exiting behind the crowd left.
+    const R = 4400;                                   // ~60° of bank at 300 knots
+    const fly = (zTurn) => {
+      const p = new Pilot({ x: R, alt: 450, z: zTurn + 9000, dir: 'A', kts: 310 });
+      p.speed(290, 0.4).until((q) => q.p[2] <= zTurn).mark('Right echelon — 60° AOB circular pass').hold(220).turn(180, { dir: 'L', r: R });
+      return p;
+    };
+    // turn where the front of the half circle passes over CP
+    const crossZ = (zt) => {
+      const tr = fly(zt).track;
+      for (let i = 1; i < tr.length; i++) if (tr.p[i * 3] <= 0 && tr.p[(i - 1) * 3] > 0) return tr.p[i * 3 + 2];
+      return 1e4;
+    };
+    const ref = fly(solve(crossZ, R, R - 600, 10));
+    ref.mark('Exit behind the crowd, crowd left').hold(400).fly(8);
     const tracks = formationTracks(ref.track, D4, [{ t: 0, form: 'echelonR' }]);
     const c = closestPass(ref.track, 0, 0);
     return finish(tracks, { events: [...eventsOf(ref), evAt(c.t, 'Over CP')] });
