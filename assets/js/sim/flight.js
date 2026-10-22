@@ -287,6 +287,34 @@ export class Pilot {
   }
   push(deg, o = {}) { return this.pull(-deg, o); }
 
+  // Hold a bank angle and load factor for `sec` seconds with gravity acting on the flight path:
+  // lift = o.g along the canopy, plus 1 g down. This is how a pilot flies "a steady 2 G at 60° of
+  // bank": at 60° that is a level turn, at 45° a climbing turn, wings level a pull-up.
+  holdG(sec, o = {}) {
+    const n = o.g ?? 2, bank = (o.bank ?? 0) * DEG, energy = o.energy ?? 0.5;
+    const steps = Math.max(1, Math.round(sec / DT));
+    for (let i = 0; i < steps; i++) {
+      let u0 = V.sub(UP, V.mul(this.d, this.d[1]));
+      u0 = V.len(u0) < 1e-3 ? this.n : V.norm(u0);
+      const l0 = V.cross(this.d, u0);
+      const lift = V.add(V.mul(u0, Math.cos(bank)), V.mul(l0, Math.sin(bank)));
+      const a = V.add(V.mul(lift, n * G), [0, -G, 0]);
+      const ap = V.sub(a, V.mul(this.d, V.dot(a, this.d)));          // the part that bends the path
+      const mag = V.len(ap);
+      if (mag > 1e-6) {
+        const axis = V.norm(V.cross(this.d, ap));
+        const ang = (mag / Math.max(this.v, 50)) * DT;
+        this.d = V.rot(this.d, axis, ang);
+      }
+      // keep the canopy at the held bank relative to the horizon
+      let u1 = V.sub(UP, V.mul(this.d, this.d[1]));
+      u1 = V.len(u1) < 1e-3 ? this.n : V.norm(u1);
+      this.n = V.add(V.mul(u1, Math.cos(bank)), V.mul(V.cross(this.d, u1), Math.sin(bank)));
+      this._step({ energy });
+    }
+    return this;
+  }
+
   // Roll about the nose. Positive = right roll. o.rate deg/s.
   roll(deg, o = {}) {
     const rate = (o.rate ?? 180) * DEG;

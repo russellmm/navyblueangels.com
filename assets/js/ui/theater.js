@@ -244,26 +244,54 @@ $('boxBtn').addEventListener('click', (e) => {
   if (theater) { theater.boxPref = on; theater.setBox(on); }
 });
 // Sound needs a user gesture to start (browser autoplay rules), so it is off until switched on.
+// The speaker button turns it on/off; the pop-up slider sets the volume (remembered per browser).
 let soundOn = false;
+let volume = 70;
+try { const v = Number(localStorage.getItem('ba-volume')); if (localStorage.getItem('ba-volume') !== null && v >= 0 && v <= 100) volume = v; } catch { /* storage unavailable */ }
+const gainFor = (v) => 1.6 * (v / 100) ** 2;    // perceptual curve; 70 ≈ the original level
+
 function showSound() {
   const b = $('snd');
   b.setAttribute('aria-pressed', String(soundOn));
   b.setAttribute('aria-label', soundOn ? 'Turn sound off' : 'Turn sound on');
+  b.dataset.level = volume === 0 ? 'mute' : volume >= 50 ? 'hi' : 'lo';
+  $('volume').value = String(volume);
+  $('volume').setAttribute('aria-valuetext', `${volume} percent`);
+  $('volPct').textContent = String(volume);
 }
 async function setSound(on) {
   soundOn = on;                       // update synchronously so rapid clicks never race
   showSound();
   try { localStorage.setItem('ba-sound', on ? '1' : '0'); } catch { /* storage unavailable */ }
   if (!on) { audio.disable(); return; }
+  if (on) peekVolume();
   if (!(await audio.enable()) && soundOn) { soundOn = false; showSound(); }
 }
+function setVolume(v) {
+  volume = Math.max(0, Math.min(100, Math.round(v)));
+  audio.setVolume(gainFor(volume));
+  showSound();
+  try { localStorage.setItem('ba-volume', String(volume)); } catch { /* storage unavailable */ }
+  if (!soundOn && volume > 0) setSound(true);    // raising the slider implies "I want sound"
+  peekVolume();
+}
+// briefly show the slider (touch screens have no hover)
+let peekTimer = null;
+function peekVolume() {
+  $('vol').classList.add('open');
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => $('vol').classList.remove('open'), 2500);
+}
+audio.setVolume(gainFor(volume));
+showSound();
 $('snd').addEventListener('click', () => setSound(!soundOn));
+$('volume').addEventListener('input', (e) => setVolume(Number(e.target.value)));
 // a returning visitor who left sound on gets it back on their first interaction with the page
 try {
   if (localStorage.getItem('ba-sound') === '1') {
     const resume = (e) => {
       removeEventListener('pointerdown', resume, true); removeEventListener('keydown', resume, true);
-      if (e.target.closest?.('#snd') || (e.key && e.key.toLowerCase() === 'm')) return;   // the toggle itself decides
+      if (e.target.closest?.('#vol') || (e.key && e.key.toLowerCase() === 'm')) return;   // the controls decide
       if (!soundOn) setSound(true);
     };
     addEventListener('pointerdown', resume, true); addEventListener('keydown', resume, true);
@@ -287,6 +315,7 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === '[' || e.key === 'PageUp') step(-1);
   else if (e.key.toLowerCase() === 'f') $('fs').click();
   else if (e.key.toLowerCase() === 'm') setSound(!soundOn);
+  else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && soundOn) { e.preventDefault(); setVolume(volume + (e.key === 'ArrowUp' ? 10 : -10)); }
   else if (/^[1-6]$/.test(e.key)) { theater.setCamera(cams[Number(e.key) - 1]); renderCams(); syncUrl(); }
 });
 

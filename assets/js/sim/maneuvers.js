@@ -839,6 +839,7 @@ add({
   id: 'delta-breakout', ref: '2-42', name: 'Delta Break Out / Head-On', group: 'delta', ids: [1, 2, 3, 4, 5, 6],
   data: { min: "300′", max: "2,900′", kin: '330', kout: '300' },
   text: 'The Delta will roll out in a head on set up and commence a climb. One nautical mile in front of the crowd, Boss in the #1 jet will call “Ready, Break!” and the Delta will split. The Lead (#1) will pull up into a steady 2G climb straight ahead. The solos (#5 & #6) will pull outboard in a steady, 2G, 60° angle of bank, and offset by 90°. The wingmen (#2 & #3) will pull outboard in a steady 2G, 45° angle of bank, and offset by 45°. The lead and slot (#1 & #4) will continue straight ahead and exit behind the crowd. The solos and wingmen will rendezvous with the lead and slot behind the crowd. If weather precludes the break out, the maneuver becomes a Head-On Pass. Boss will keep the Delta Formation and climb to a minimum of 500’ AGL prior to crossing show line.',
+  note: 'Taken literally, the 2 G / 45° and 2 G / 60° numbers would bunch the wingmen and solos together and leave #1 alone at the top. The animation follows what spectators see: an even fan, with #1, #2/#3 and #5/#6 opening at 0°, 45° and 90° around the slot.',
   build() {
     const ref = new Pilot({ x: 0, alt: 300, z: -17000, dir: 'T', kts: 330 });
     ref.until((q) => q.p[2] >= -9500).mark('Commence climb').pitchTo(6, { g: 1.6 });
@@ -847,14 +848,29 @@ add({
     ref.fly(16);
     const ids = [1, 2, 3, 4, 5, 6];
     const tracks = formationTracks(ref.track, ids, [{ t: 0, form: 'delta' }]);
-    detach(tracks, 1, tB, (p) => p.pitchTo(22, { g: 2 }).fly(10));
-    detach(tracks, 4, tB, (p) => p.fly(12));
-    // #5 flies the Delta's left back corner, #6 the right
-    detach(tracks, 5, tB, (p) => p.turn(90, { dir: 'L', bank: 60 }).fly(5));
-    detach(tracks, 6, tB, (p) => p.turn(90, { dir: 'R', bank: 60 }).fly(5));
-    detach(tracks, 2, tB, (p) => p.turn(45, { dir: 'R', bank: 45 }).fly(7));
-    detach(tracks, 3, tB, (p) => p.turn(45, { dir: 'L', bank: 45 }).fly(7));
-    return finish(tracks, { events: [...eventsOf(ref), evAt(tB, '“Ready… Break!”', { call: true })] });
+    // Seen head-on from the crowd the break is an even fan around the slot (#4), which flies straight
+    // ahead: #1 at the top, #2/#3 on the 45° diagonals, #5/#6 out at 90°, all the same distance from #4
+    // as it opens. Gravity acts on everyone equally, so the spread comes from each jet's lift relative
+    // to the slot's 1 G. For equal spacing every jet pulls K g relative to #4 in its fan direction:
+    //   lift = 1 g up + K g toward the fan angle  ->  bank = atan2(K sin a, 1 + K cos a), G = |lift|.
+    // K = 1.5 gives about #1 2.35 G wings level, #2/#3 2.3 G at 28° of bank, #5/#6 1.8 G at 56° of bank.
+    const K = 1.5, HOLD = 7;
+    const fanBreak = (angleDeg) => (p) => {
+      const a = angleDeg * DEG;
+      const k = K * (1 - 0.1 * Math.cos(a));            // #1 starts at the formation's front, so it pulls a touch less
+      const side = k * Math.sin(a), up = 1 + k * Math.cos(a);
+      const bank = Math.atan2(side, up) / DEG, g = Math.hypot(side, up);
+      if (Math.abs(bank) > 0.5) p.roll(bank, { rate: 170 });
+      p.holdG(HOLD, { g, bank }).rollTo(0, { rate: 90 }).pitchTo(8, { g: 1.5 }).fly(4);
+    };
+    detach(tracks, 4, tB, (p) => p.fly(16));
+    detach(tracks, 1, tB, fanBreak(0));
+    // in the Delta, #2 is right wing and #3 left wing; #5 flies the left back corner, #6 the right
+    detach(tracks, 2, tB, fanBreak(45));
+    detach(tracks, 3, tB, fanBreak(-45));
+    detach(tracks, 6, tB, fanBreak(90));
+    detach(tracks, 5, tB, fanBreak(-90));
+    return finish(tracks, { events: [...eventsOf(ref), evAt(tB, '“Ready… Break!”', { call: true })], end: tB + 16 });
   }
 });
 

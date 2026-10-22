@@ -461,8 +461,26 @@ section { position: relative; }
 :root[data-theme="team"] .page-head .eyebrow,
 :root[data-theme="team"] .stat-band .eyebrow { color: var(--accent); }
 
-/* sound toggle */
-#snd .snd-on { display: none; }
-#snd[aria-pressed="true"] .snd-on { display: inline; }
+/* sound toggle + volume */
+.vol { position: relative; display: flex; }
+#snd .snd-lo, #snd .snd-hi { display: none; }
 #snd[aria-pressed="true"] .snd-off { display: none; }
+#snd[aria-pressed="true"] .snd-lo { display: inline; }
+#snd[aria-pressed="true"][data-level="hi"] .snd-hi { display: inline; }
+#snd[aria-pressed="true"][data-level="mute"] .snd-lo { display: none; }
+#snd[aria-pressed="true"][data-level="mute"] .snd-off { display: inline; }
 #snd[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.vol-pop {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px 8px;
+  border-radius: 999px; background: rgba(5, 9, 18, 0.82); border: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; visibility: hidden; transition: opacity .18s, visibility .18s;
+}
+.vol-pop::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }   /* hover bridge to the button */
+.vol:hover .vol-pop, .vol:focus-within .vol-pop, .vol.open .vol-pop { opacity: 1; visibility: visible; }
+.vol-pop input[type="range"] {
+  writing-mode: vertical-lr; direction: rtl;          /* vertical slider, loud at the top */
+  width: 22px; height: 96px; margin: 0; accent-color: var(--accent); cursor: pointer;
+}
+.vol-pop span { font-size: 10px; font-variant-numeric: tabular-nums; opacity: .8; }
