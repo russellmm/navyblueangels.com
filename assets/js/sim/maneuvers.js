@@ -326,15 +326,26 @@ add({
   id: 'diamond-360', ref: '2-15', name: 'Diamond 360', group: 'diamond', ids: D4,
   data: { min: "200′", max: "800′", kin: '310', kout: '290' },
   text: 'In Diamond formation the Diamond executes a non-aerobatic right to left circular pass at less than 60° AOB crossing over CP at a minimum ALT of 200’.',
+  // Plan view of the diagram: the diamond sets up behind the crowd flying left to right, then
+  // one left turn of under 60° of bank takes it round the crowd's right end, right to left over
+  // CP at 200′, round the crowd's left end and back behind the crowd. A left turn that crosses CP
+  // heading straight down the show line is centred behind CP at z = R, so the 360 encircles the
+  // spectators (clearing the ends of the crowd by about 2,000 ft).
   build() {
-    const R = 4300, z0 = 1000;
-    const xc = Math.sqrt(2 * z0 * R - z0 * z0);
-    const ref = new Pilot({ x: -11000, alt: 400, z: z0, dir: 'R', kts: 310 });
-    ref.speed(290, 0.4).untilX(xc - 400).mark('Circular pass — <60° AOB').hold(250).turn(360, { dir: 'L', r: R });
-    ref.hold(400).fly(10);
+    const R = 5500;
+    const ref = new Pilot({ x: -7000, alt: 800, z: 2 * R, dir: 'R', kts: 310 });
+    ref.speed(290, 0.4).mark('Setup behind the crowd').untilX(0);
+    // descend to 200′ for the pass, then climb back out once past CP
+    ref.mark('Circular pass — <60° AOB').hold(230).turn(360, {
+      dir: 'L', r: R, remaining: (turned) => {
+        if (turned > Math.PI && ref.p[0] < 0 && ref.altHold !== 800) ref.hold(800);
+        return 2 * Math.PI - turned;
+      }
+    });
+    ref.hold(null).mark('Rolled out behind the crowd').fly(6);
     const tracks = formationTracks(ref.track, D4, [{ t: 0, form: 'diamond' }]);
     const c = closestPass(ref.track, 0, 0);
-    return finish(tracks, { events: [...eventsOf(ref), evAt(c.t, 'Over CP')] });
+    return finish(tracks, { events: [...eventsOf(ref), evAt(c.t, 'Over CP — 200′')] });
   }
 });
 
@@ -1095,7 +1106,7 @@ export const SHOWS = {
   high: {
     name: 'High show', ceiling: '10,000′ ceiling · 3 NM visibility',
     blurb: 'The full vertical show: loops, vertical breaks, the Fleur De Lis and the Loop Break / 6-Plane Cross.',
-    seq: ['cuban-loop', 'dirty-roll-takeoff', 'immelmann-6', 'delta-head-on', 'diamond-360', 'knife-edge', 'diamond-roll', 'inv-inv', 'aileron-roll', 'fortus', 'dirty-loop', 'mrt', 'farvel', 'opp-mrt', 'echelon-parade', 'opp-hrolls', 'changeover', 'sneak', 'sneak-vertical', 'la-loop', 'four-point', 'vertical-break', 'vertical-pitch', 'barrel-break', 'tuck-over', 'low-break-cross', 'high-alpha', 'burner-270', 'delta-roll', 'fleur', 'loop-break-cross', 'delta-breakout', 'delta-flat', 'pitch-up-break']
+    seq: ['cuban-loop', 'dirty-roll-takeoff', 'immelmann-6', 'diamond-360', 'knife-edge', 'diamond-roll', 'inv-inv', 'aileron-roll', 'fortus', 'dirty-loop', 'mrt', 'farvel', 'opp-mrt', 'echelon-parade', 'opp-hrolls', 'changeover', 'sneak', 'sneak-vertical', 'la-loop', 'four-point', 'vertical-break', 'vertical-pitch', 'barrel-break', 'tuck-over', 'low-break-cross', 'high-alpha', 'burner-270', 'delta-roll', 'fleur', 'loop-break-cross', 'delta-breakout', 'delta-flat', 'pitch-up-break']
   },
   low: {
     name: 'Low show', ceiling: '4,500′ ceiling · 3 NM visibility',
@@ -1113,9 +1124,9 @@ export const SHOWS = {
     seq: ['c130-takeoff', 'c130-remote', 'c130-parade', 'c130-flat', 'c130-head', 'c130-remote-head', 'c130-landing']
   },
   alternate: {
-    name: 'Alternates', ceiling: 'Flown in place of the linked 2-10 takeoff',
-    blurb: 'The two halves of the 2-10 takeoff flown on their own, and the Half-Cuban Eight Break Out for clouds biased to crowd left.',
-    seq: ['half-cuban', 'burner-loop', 'half-cuban-break']
+    name: 'Alternates', ceiling: 'Flown when weather or the show site calls for them',
+    blurb: 'The two halves of the 2-10 takeoff flown on their own, the Half-Cuban Eight Break Out for clouds biased to crowd left, and the Delta Head-On used at remote and over-water sites.',
+    seq: ['half-cuban', 'burner-loop', 'half-cuban-break', 'delta-head-on']
   }
 };
 
